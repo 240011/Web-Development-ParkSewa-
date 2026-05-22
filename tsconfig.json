@@ -20,7 +20,7 @@
       }
     ],
     "paths": {
-      "@/*": ["app/frontend/src/*"],
+      "@/*": ["app/*"],
       "@parksewa/*": ["api-client-react/*"]
     }
   },
