@@ -57,44 +57,44 @@ export default function LoginPage() {
           <p className="text-xs opacity-90">{toast.desc}</p>
         </div>
       )}
-      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-8 md:p-12">
-        <div className="flex flex-col items-center text-center">
-          <div className="w-20 h-20 rounded-full bg-teal-50 flex items-center justify-center mb-5">
-            <CarFront className="w-10 h-10 text-teal-600" />
-          </div>
-          <h1 className="text-4xl font-bold text-gray-900">Welcome back</h1>
-          <p className="text-gray-500 mt-3 text-lg">Sign in to your ParkSewa account</p>
-        </div>
+       <div className="w-full max-w-xl bg-white rounded-3xl shadow-xl p-6 md:p-8">
+         <div className="flex flex-col items-center text-center">
+           <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center mb-4">
+             <CarFront className="w-8 h-8 text-teal-600" />
+           </div>
+           <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
+           <p className="text-gray-500 mt-2 text-base">Sign in to your ParkSewa account</p>
+         </div>
 
-        <form onSubmit={onSubmit} className="mt-10 space-y-6">
+        <form onSubmit={onSubmit} className="mt-8 space-y-5">
           <div>
-            <label className="block text-lg font-medium text-gray-800 mb-2">Email</label>
+            <label className="block text-base font-medium text-gray-800 mb-1">Email</label>
             <input
               type="email"
               placeholder="john@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-2xl border border-gray-300 px-5 py-4 text-lg outline-none focus:ring-4 focus:ring-teal-100 focus:border-teal-500 transition"
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base outline-none focus:ring-3 focus:ring-teal-100 focus:border-teal-500 transition"
             />
           </div>
           <div>
-            <label className="block text-lg font-medium text-gray-800 mb-2">Password</label>
+            <label className="block text-base font-medium text-gray-800 mb-1">Password</label>
             <input
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-2xl border border-gray-300 px-5 py-4 text-lg outline-none focus:ring-4 focus:ring-teal-100 focus:border-teal-500 transition"
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base outline-none focus:ring-3 focus:ring-teal-100 focus:border-teal-500 transition"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-teal-600 hover:bg-teal-700 text-white text-xl font-semibold py-4 rounded-2xl transition shadow-md"
+            className="w-full bg-teal-600 hover:bg-teal-700 text-white text-base font-semibold py-3 rounded-xl transition shadow-md"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Signing in…
               </span>
             ) : (
@@ -110,7 +110,7 @@ export default function LoginPage() {
             onClick={() => router.push("/register")}
             className="text-teal-600 font-medium cursor-pointer hover:underline"
           >
-            Sign up
+            Register
           </button>
         </p>
       </div>
