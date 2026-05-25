@@ -40,7 +40,7 @@ export default function LoginPage() {
         throw new Error(body.message || `HTTP ${res.status}`);
       }
       showToast("Welcome back!", "Login successful.", "default");
-      router.push("/register");
+      router.push("/frontend/dashboard");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Invalid email or password.";
       showToast("Login failed", msg, "destructive");
@@ -63,7 +63,7 @@ export default function LoginPage() {
              <CarFront className="w-8 h-8 text-teal-600" />
            </div>
            <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
-           <p className="text-gray-500 mt-2 text-base">Sign in to your ParkSewa account</p>
+              <p className="text-gray-500 mt-2 text-base">Login to ParkSewa</p>
          </div>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-5">
@@ -104,14 +104,14 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-gray-500 mt-8 text-lg">
-          Don&apos;t have an account?{" "}
+          Already have an account?{" "}
           <button
             type="button"
-            onClick={() => router.push("/register")}
+            onClick={() => router.push("/frontend/register")}
             className="text-teal-600 font-medium cursor-pointer hover:underline"
           >
-            Register
-          </button>
+             Sign Up
+            </button>
         </p>
       </div>
     </div>

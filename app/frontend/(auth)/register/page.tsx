@@ -45,8 +45,8 @@ export default function RegisterPage() {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.message || `HTTP ${res.status}`);
       }
-      showToast("Account created", "Welcome to ParkSewa.", "default");
-      router.push("/login");
+        showToast("Account created", "Welcome to ParkSewa.", "default");
+        router.push("/frontend/login");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Something went wrong.";
       showToast("Registration failed", msg, "destructive");
@@ -69,7 +69,7 @@ export default function RegisterPage() {
                <CarFront className="w-8 h-8 text-teal-600" />
              </div>
              <h1 className="text-3xl font-bold text-gray-900">Create an account</h1>
-             <p className="text-gray-500 mt-2 text-base">Join ParkSewa to book parking spots</p>
+              <p className="text-gray-500 mt-2 text-base">Join ParkSewa to book parking spots</p>
            </div>
 
           <form onSubmit={onSubmit} className="mt-8 space-y-5">
@@ -166,16 +166,16 @@ export default function RegisterPage() {
               )}
             </button>
           </form>
-         <p className="text-center text-gray-500 mt-8 text-lg">
-           Already have an account?{" "}
-           <button
-             type="button"
-             onClick={() => router.push("/login")}
-             className="text-teal-600 font-medium cursor-pointer hover:underline"
-           >
-             Login
-           </button>
-         </p>
+          <p className="text-center text-gray-500 mt-8 text-lg">
+            Already have an account?{" "}
+            <button
+              type="button"
+              onClick={() => router.push("/frontend/login")}
+              className="text-teal-600 font-medium cursor-pointer hover:underline"
+            >
+              Login
+            </button>
+          </p>
       </div>
     </div>
   );
