@@ -21,7 +21,7 @@
     ],
     "paths": {
       "@/*": ["app/frontend/*"],
-      "@parksewa/*": ["api-client-react/*"]
+      "@parksewa/*": ["node_modules/@parksewa/api-client-react/*"]
     }
   },
   "include": [
@@ -30,7 +30,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "app/backend/src/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

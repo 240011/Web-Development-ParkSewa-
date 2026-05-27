@@ -9,8 +9,10 @@ export default function FrontendLayout({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-background">
-        <main className="container mx-auto px-4 py-8">
-          {children}
+        <main className="pl-64">
+          <div className="container mx-auto px-4 py-8">
+            {children}
+          </div>
         </main>
       </div>
     </QueryClientProvider>

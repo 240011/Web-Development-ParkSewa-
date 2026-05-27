@@ -19,8 +19,8 @@ export function getGetCurrentUserQueryKey() {
 export function useAuth() {
   const { data: user } = useQuery({
     queryKey: getGetCurrentUserQueryKey(),
-    queryFn: async () => {
-      const res = await fetch("/api/auth/me");
+queryFn: async () => {
+       const res = await fetch("/api/auth/current-user");
       if (!res.ok) {
         if (res.status === 401) return null;
         throw new Error("Failed to fetch user");
