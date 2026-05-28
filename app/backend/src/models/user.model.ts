@@ -9,6 +9,7 @@ export interface IUser extends Document {
   password: string;
   vehicle_number: string;
   vehicle_type: VehicleType;
+  role: "user" | "admin";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +22,7 @@ const UserSchema = new Schema<IUser>(
     password: { type: String, required: true },
     vehicle_number: { type: String, required: true, trim: true },
     vehicle_type: { type: String, enum: ["Bike", "Car", "Truck"], required: true },
+    role: { type: String, enum: ["user", "admin"], default: "user" },
   },
   { timestamps: true }
 );

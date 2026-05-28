@@ -37,7 +37,7 @@ export class UserService {
 
     const secretKey = process.env.SECRET_KEY || "default-secret-key";
     const token = jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, role: user.role },
       secretKey,
       { expiresIn: "30d" }
     );
