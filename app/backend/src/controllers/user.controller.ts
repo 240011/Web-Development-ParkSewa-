@@ -48,4 +48,57 @@ export class UserController {
       );
     }
   }
+
+  async getCurrentUser(req: NextRequest) {
+    try {
+      // Extract token from authorization header
+      const authHeader = req.headers.get("authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return NextResponse.json(
+          ApiResponseHelper.error("Unauthorized - No token provided", 401),
+          { status: 401 }
+        );
+      }
+
+      const token = authHeader.substring(7);
+      const secretKey = process.env.SECRET_KEY || "default-secret-key";
+      
+      // Verify token
+      const jwt = require("jsonwebtoken");
+      const payload = jwt.verify(token, secretKey) as { userId: string; email: string; role: string };
+      
+      // Find user by ID from token
+      const user = await new (require("../repositories/user.repository").UserRepository)().findById(payload.userId);
+      
+      if (!user) {
+        return NextResponse.json(
+          ApiResponseHelper.error("User not found", 404),
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(
+        ApiResponseHelper.success(
+          { 
+            _id: user._id, 
+            full_name: user.full_name, 
+            email: user.email, 
+            phone: user.phone, 
+            vehicle_number: user.vehicle_number, 
+            vehicle_type: user.vehicle_type,
+            role: user.role
+          },
+          "User retrieved successfully",
+          200
+        ),
+        { status: 200 }
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to get current user";
+      return NextResponse.json(
+        ApiResponseHelper.error(message, 401),
+        { status: 401 }
+      );
+    }
+  }
 }
