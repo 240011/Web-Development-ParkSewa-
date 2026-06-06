@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface User {
   id: number;
@@ -17,45 +17,34 @@ export function getGetCurrentUserQueryKey() {
 }
 
 export function useAuth() {
-  const { data: user } = useQuery({
+  const queryClient = useQueryClient();
+
+  const { data: user, isLoading } = useQuery({
     queryKey: getGetCurrentUserQueryKey(),
     queryFn: async () => {
-       // Try to fetch from backend, fallback to checking token in localStorage
-       try {
-         const res = await fetch("/api/v1/auth/current-user");
-         if (!res.ok) {
-           if (res.status === 401) return null;
-           throw new Error("Failed to fetch user");
-         }
-         return res.json() as Promise<User>;
-       } catch (error) {
-         // If API call fails, check if we have a token in localStorage
-         const token = localStorage.getItem("token");
-         if (token) {
-           // Decode JWT token to get user info (without verification for client-side)
-           try {
-             const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-             return {
-               id: Number(payload.userId) || 1,
-               name: payload.full_name || 'John Doe',
-               email: payload.email,
-               phone: payload.phone || '',
-               vehicleNumber: payload.vehicle_number || '',
-               vehicleType: payload.vehicle_type || 'car',
-               role: payload.role || 'user'
-             } as User;
-           } catch (decodeError) {
-             // If token decoding fails, return null
-             return null;
-           }
-         }
-         return null;
-       }
-     },
+      const res = await fetch("/api/v1/auth/current-user", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
+        return null;
+      }
+      const json = await res.json() as { data: { _id: string; full_name: string; email: string; phone: string; vehicle_number: string; vehicle_type: string; role: string } };
+      if (!json.data) return null;
+      return {
+        id: Number(json.data._id),
+        name: json.data.full_name,
+        email: json.data.email,
+        phone: json.data.phone,
+        vehicleNumber: json.data.vehicle_number,
+        vehicleType: json.data.vehicle_type,
+        role: json.data.role,
+      } as User;
+    },
     staleTime: 5 * 60 * 1000,
   });
 
-  const mockUser: User = { id: 1, name: "John Doe", email: "john@example.com", phone: "9800000000", vehicleNumber: "BA 1 PA 1234", vehicleType: "car", role: "user" };
-   
-  return { user: user ?? mockUser, isLoading: false };
+  return { user: user ?? null, isLoading };
 }

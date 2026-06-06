@@ -4,6 +4,8 @@ import { UserRepository } from "../repositories/user.repository";
 import { RegisterInput, LoginInput } from "../types/user.type";
 import { IUser } from "../models/user.model";
 
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY || "default-secret-key";
+
 export class UserService {
   private userRepository: UserRepository;
 
@@ -11,17 +13,25 @@ export class UserService {
     this.userRepository = new UserRepository();
   }
 
-  async register(data: RegisterInput): Promise<IUser> {
+  async register(data: RegisterInput): Promise<{ user: IUser; token: string }> {
     const existingUser = await this.userRepository.findByEmail(data.email);
     if (existingUser) {
       throw new Error("User with this email already exists");
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
-    return this.userRepository.create({
+    const user = await this.userRepository.create({
       ...data,
       password: hashedPassword,
     });
+
+    const token = jwt.sign(
+      { userId: user._id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return { user, token };
   }
 
   async login(data: LoginInput): Promise<{ user: IUser; token: string }> {
@@ -35,11 +45,10 @@ export class UserService {
       throw new Error("Invalid email or password");
     }
 
-    const secretKey = process.env.SECRET_KEY || "default-secret-key";
     const token = jwt.sign(
       { userId: user._id, email: user.email, role: user.role },
-      secretKey,
-      { expiresIn: "30d" }
+      JWT_SECRET,
+      { expiresIn: "1h" }
     );
 
     return { user, token };
