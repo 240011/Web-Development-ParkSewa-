@@ -38,8 +38,8 @@ export default function RegistrationForm() {
     try {
       const result = await registerAction(data);
       if (result.success) {
-        showToast("Account created", "Welcome to ParkSewa.", "default");
-        router.push("/frontend/dashboard");
+        showToast("Account created", "You can now log in.", "default");
+        router.push("/frontend/login");
       } else {
         showToast("Registration failed", result.message || "Something went wrong.", "destructive");
       }

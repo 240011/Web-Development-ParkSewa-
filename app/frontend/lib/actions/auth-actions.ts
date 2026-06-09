@@ -78,11 +78,25 @@ export async function loginAction(data: unknown) {
       };
     }
 
-    const data = await response.json();
-    await setTokenCookie(data.data.token);
+    const responseData = await response.json();
+
+    // Server-side: set httpOnly cookie for auth verification
+    await setTokenCookie(responseData.data.token);
+
+    // Return user data for client-side storage (user must handle localStorage)
     return {
       success: true as const,
-      data: data.data,
+      data: responseData.data,
+      user: {
+        id: responseData.data.user._id,
+        name: responseData.data.user.full_name,
+        email: responseData.data.user.email,
+        phone: responseData.data.user.phone,
+        vehicleNumber: responseData.data.user.vehicle_number,
+        vehicleType: responseData.data.user.vehicle_type,
+        role: responseData.data.user.role,
+      },
+      token: responseData.data.token,
       message: "Login successful",
     };
   } catch {

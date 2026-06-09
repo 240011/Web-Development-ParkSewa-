@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loginRoute } from "../../../../backend/src/routes/auth.route";
+import { uploadRoute } from "../../../backend/src/routes/upload.route";
 
 export async function POST(request: NextRequest) {
-    return loginRoute(request);
+    return uploadRoute(request);
 }

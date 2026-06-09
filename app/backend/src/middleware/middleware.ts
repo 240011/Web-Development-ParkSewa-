@@ -191,11 +191,19 @@ export async function loggingMiddleware(
     const url = req.nextUrl.pathname;
 
     const authHeader = req.headers.get("authorization");
-    const enrichedReq = req as NextRequest & { user?: AuthenticatedUser };
+    const cookieToken = req.cookies.get("token")?.value;
+    let token: string | undefined;
 
     if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    } else if (cookieToken) {
+      token = cookieToken;
+    }
+
+    const enrichedReq = req as NextRequest & { user?: AuthenticatedUser };
+
+    if (token) {
       try {
-        const token = authHeader.substring(7);
         const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString()) as AuthenticatedUser;
         enrichedReq.user = payload;
       } catch {
