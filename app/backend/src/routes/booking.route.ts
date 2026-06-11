@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { ApiResponseHelper } from "../helpers/ApiResponseHelper";
 
 export async function getBookingsRoute(_request: NextRequest) {
   const mockBookings = [
@@ -28,7 +29,9 @@ export async function getBookingsRoute(_request: NextRequest) {
     },
   ];
 
-  return new Response(JSON.stringify(mockBookings), {
+  return new Response(JSON.stringify(
+    ApiResponseHelper.success(mockBookings, "Bookings retrieved successfully", 200)
+  ), {
     status: 200,
     headers: {
       "Content-Type": "application/json",

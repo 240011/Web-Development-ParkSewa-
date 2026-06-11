@@ -19,7 +19,7 @@ export default function Dashboard() {
    
   const { data: bookings } = useListBookings() as { data: Booking[] | undefined };
 
-  const displayBookings = bookings ?? mockBookings;
+  const displayBookings = Array.isArray(bookings) ? bookings : mockBookings;
   const activeBookings = displayBookings?.filter(b => b.status === "active" || b.status === "pending") || [];
   const recentBookings = displayBookings?.slice(0, 5) || [];
 

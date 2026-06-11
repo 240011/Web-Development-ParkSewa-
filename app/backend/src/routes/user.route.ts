@@ -9,11 +9,5 @@ export async function getCurrentUserRoute(request: NextRequest) {
   await connectDB();
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
-  if (!token) {
-    return NextResponse.json(
-      { success: false, statusCode: 401, message: "Unauthorized - No token provided", data: null },
-      { status: 401 }
-    );
-  }
   return controller.getCurrentUser(request, token);
 }

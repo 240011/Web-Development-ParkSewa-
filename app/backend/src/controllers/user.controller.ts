@@ -29,11 +29,26 @@ export class UserController {
     }
   }
 
-  async getCurrentUser(_req: NextRequest, token: string) {
+  async getCurrentUser(req: NextRequest, token?: string) {
     try {
+      // Support both cookie token and Authorization header
+      let authToken = token;
+      if (!authToken) {
+        const authHeader = req.headers.get("authorization");
+        if (authHeader?.startsWith("Bearer ")) {
+          authToken = authHeader.substring(7);
+        }
+      }
+      
+      if (!authToken) {
+        return NextResponse.json(
+          ApiResponseHelper.error("Unauthorized - No token provided", 401),
+          { status: 401 }
+        );
+      }
       const jwt = await import("jsonwebtoken");
       const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY || "default-secret-key";
-      const payload = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: string };
+      const payload = jwt.verify(authToken, JWT_SECRET) as { userId: string; email: string; role: string };
 
       const user = await new (await import("../repositories/user.repository")).UserRepository().findById(payload.userId);
 

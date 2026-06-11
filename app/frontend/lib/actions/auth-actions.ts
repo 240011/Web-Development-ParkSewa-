@@ -109,18 +109,7 @@ export async function loginAction(data: unknown) {
 
 export async function logoutAction() {
   try {
-    const baseUrl = await getBaseUrl();
-    const response = await fetch(`${baseUrl}${ENDPOINTS.auth.logout}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) {
-      return { success: false as const, message: "Logout failed" };
-    }
-
     await deleteTokenCookie();
-
     return { success: true as const, message: "Logged out successfully" };
   } catch {
     return { success: false as const, message: "Network error. Please try again." };
