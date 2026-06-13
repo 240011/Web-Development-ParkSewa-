@@ -14,7 +14,7 @@ export class UserController {
 
       return NextResponse.json(
         ApiResponseHelper.success(
-          { token, user: { _id: user._id, full_name: user.full_name, email: user.email, phone: user.phone, vehicle_number: user.vehicle_number, vehicle_type: user.vehicle_type } },
+          { token, user: { _id: user._id, full_name: user.full_name, email: user.email, phone: user.phone, vehicle_number: user.vehicle_number, vehicle_type: user.vehicle_type, profile_image_url: user.profileImageUrl ?? null } },
           "Login successful",
           200
         ),
@@ -68,6 +68,7 @@ export class UserController {
             phone: user.phone,
             vehicle_number: user.vehicle_number,
             vehicle_type: user.vehicle_type,
+            profile_image_url: user.profileImageUrl ?? null,
             role: user.role
           },
           "User retrieved successfully",

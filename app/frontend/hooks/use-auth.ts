@@ -9,6 +9,7 @@ export interface User {
   phone: string;
   vehicleNumber: string;
   vehicleType: string;
+  profileImageUrl: string | null;
   role: "user" | "admin";
 }
 
@@ -31,7 +32,7 @@ export function useAuth() {
         queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
         return null;
       }
-      const json = await res.json() as { data: { _id: string; full_name: string; email: string; phone: string; vehicle_number: string; vehicle_type: string; role: string } };
+      const json = await res.json() as { data: { _id: string; full_name: string; email: string; phone: string; vehicle_number: string; vehicle_type: string; profile_image_url: string | null; role: string } };
       if (!json.data) return null;
       return {
         id: Number(json.data._id),
@@ -40,6 +41,7 @@ export function useAuth() {
         phone: json.data.phone,
         vehicleNumber: json.data.vehicle_number,
         vehicleType: json.data.vehicle_type,
+        profileImageUrl: json.data.profile_image_url ?? null,
         role: json.data.role,
       } as User;
     },

@@ -69,7 +69,7 @@ export default function Sidebar() {
     ? pathname.slice(0, -1)
     : pathname;
 
-  if (normalizedPathname !== "/frontend/dashboard" && normalizedPathname !== "/frontend/spots") {
+  if (normalizedPathname !== "/frontend/dashboard" && normalizedPathname !== "/frontend/spots" && normalizedPathname !== "/frontend/profile") {
     return null;
   }
 

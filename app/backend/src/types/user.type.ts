@@ -14,5 +14,18 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const updateProfileSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters").optional(),
+  email: z.string().email("Invalid email address").optional(),
+  phone: z.string().min(10, "Phone number must be at least 10 digits").optional(),
+  licensePlate: z.string().min(1, "License plate is required").optional(),
+  vehicleType: z.enum(["Bike", "Car", "Truck"]).optional(),
+  profileImageUrl: z.union([
+    z.string().regex(/^\/(?:uploads|api\/v1\/uploads\/files)\//, "Profile image must be an uploaded file URL"),
+    z.null(),
+  ]).optional(),
+}).refine((data) => Object.values(data).some((value) => value !== undefined), "At least one profile field is required");
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

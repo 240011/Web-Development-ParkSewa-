@@ -27,6 +27,7 @@ export async function registerRoute(request: NextRequest) {
           phone: user.phone,
           vehicle_number: user.vehicle_number,
           vehicle_type: user.vehicle_type,
+          profile_image_url: user.profileImageUrl ?? null,
           token,
         },
       },
@@ -67,7 +68,7 @@ export async function loginRoute(request: NextRequest) {
 
     const response = NextResponse.json(
       ApiResponseHelper.success(
-        { token, user: { _id: user._id, full_name: user.full_name, email: user.email, phone: user.phone, vehicle_number: user.vehicle_number, vehicle_type: user.vehicle_type } },
+        { token, user: { _id: user._id, full_name: user.full_name, email: user.email, phone: user.phone, vehicle_number: user.vehicle_number, vehicle_type: user.vehicle_type, profile_image_url: user.profileImageUrl ?? null } },
         "Login successful",
         200
       ),
