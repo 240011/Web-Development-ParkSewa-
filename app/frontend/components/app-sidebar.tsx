@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Search,
   Calendar,
-  History,
   Bell,
   User,
   LogOut,
@@ -20,7 +19,6 @@ const menuItems = [
   { href: "/frontend/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/frontend/spots", label: "Find Spots", icon: Search },
   { href: "/frontend/bookings", label: "My Bookings", icon: Calendar },
-  { href: "/frontend/history", label: "History", icon: History },
   { href: "/frontend/notifications", label: "Notifications", icon: Bell },
 ];
 
@@ -69,7 +67,12 @@ export default function Sidebar() {
     ? pathname.slice(0, -1)
     : pathname;
 
-  if (normalizedPathname !== "/frontend/dashboard" && normalizedPathname !== "/frontend/spots" && normalizedPathname !== "/frontend/profile") {
+  if (
+    normalizedPathname !== "/frontend/dashboard" &&
+    normalizedPathname !== "/frontend/spots" &&
+    normalizedPathname !== "/frontend/bookings" &&
+    normalizedPathname !== "/frontend/profile"
+  ) {
     return null;
   }
 
