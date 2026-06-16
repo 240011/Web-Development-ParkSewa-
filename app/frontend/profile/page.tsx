@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { getGetCurrentUserQueryKey, useAuth } from "@/hooks/use-auth";
 import { Calendar, MapPin, Star, Trophy, User } from "lucide-react";
 import Sidebar from "../components/app-sidebar";
+import ChangePasswordForm from "../components/change-password-form";
 
 type VehicleType = "Bike" | "Car" | "Truck";
 
@@ -338,6 +339,16 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle>Security</CardTitle>
+              <CardDescription>Update your password</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChangePasswordForm />
             </CardContent>
           </Card>
 
