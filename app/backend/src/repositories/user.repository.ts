@@ -47,4 +47,12 @@ export class UserRepository {
 
     return User.findByIdAndUpdate(id, updateData, { returnDocument: "after" }).exec();
   }
+
+  async updatePassword(id: string, password: string): Promise<IUser | null> {
+    return User.findByIdAndUpdate(
+      id,
+      { password },
+      { returnDocument: "after" }
+    ).exec();
+  }
 }
