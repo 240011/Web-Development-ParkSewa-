@@ -35,7 +35,7 @@ export default function LoginForm() {
       const result = await loginAction(data);
       if (result.success) {
         showToast("Welcome back!", "Login successful.", "default");
-        router.push("/frontend/dashboard");
+        router.push(result.user?.role === "admin" ? "/frontend/admin/dashboard" : "/frontend/dashboard");
       } else {
         showToast("Login failed", result.message || "Invalid email or password.", "destructive");
       }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserService } from "../services/user.services";
 import { LoginDTO } from "../dtos/user.dto";
 import { ApiResponseHelper } from "../helpers/ApiResponseHelper";
+import { DUMMY_ADMIN_ID, DUMMY_ADMIN_USER } from "../constants/auth.constants";
 
 const userService = new UserService();
 
@@ -49,6 +50,26 @@ export class UserController {
       const jwt = await import("jsonwebtoken");
       const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY || "default-secret-key";
       const payload = jwt.verify(authToken, JWT_SECRET) as { userId: string; email: string; role: string };
+
+      if (payload.userId === DUMMY_ADMIN_ID && payload.role === "admin") {
+        return NextResponse.json(
+          ApiResponseHelper.success(
+            {
+              _id: DUMMY_ADMIN_USER._id,
+              full_name: DUMMY_ADMIN_USER.full_name,
+              email: DUMMY_ADMIN_USER.email,
+              phone: DUMMY_ADMIN_USER.phone,
+              vehicle_number: DUMMY_ADMIN_USER.vehicle_number,
+              vehicle_type: DUMMY_ADMIN_USER.vehicle_type,
+              profile_image_url: DUMMY_ADMIN_USER.profileImageUrl ?? null,
+              role: DUMMY_ADMIN_USER.role,
+            },
+            "User retrieved successfully",
+            200
+          ),
+          { status: 200 }
+        );
+      }
 
       const user = await new (await import("../repositories/user.repository")).UserRepository().findById(payload.userId);
 
