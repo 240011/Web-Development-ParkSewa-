@@ -1,10 +1,42 @@
 import mongoose from "mongoose";
+import { MONGODB_URL, MONGODB_TEST_URL } from "../constants/constant";
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/parksewa";
+let isConnected = false;
 
-export async function connectDB() {
-  if (mongoose.connection.readyState >= 1) {
-    return;
+export const connectToMongoDB = async () => {
+  if (isConnected) return;
+
+  const uri = String(MONGODB_URL);
+  if (!uri || typeof uri !== "string") {
+    throw new Error(`Invalid MONGODB_URL: expected string, got ${typeof MONGODB_URL}`);
   }
-  return mongoose.connect(MONGODB_URI);
-}
+
+  try {
+    await mongoose.connect(uri);
+    isConnected = true;
+    console.log("Connected to MongoDB");
+  } catch (error) {
+    console.error("Error connecting to MongoDB:", error);
+    throw error;
+  }
+};
+
+export const connectDB = connectToMongoDB;
+
+export const connectToMongoDBTest = async () => {
+  if (isConnected) return;
+
+  const uri = String(MONGODB_TEST_URL);
+  if (!uri || typeof uri !== "string") {
+    throw new Error(`Invalid MONGODB_TEST_URL: expected string, got ${typeof MONGODB_TEST_URL}`);
+  }
+
+  try {
+    await mongoose.connect(uri);
+    isConnected = true;
+    console.log("Connected to MongoDB Test");
+  } catch (error) {
+    console.error("Error connecting to MongoDB Test:", error);
+    throw error;
+  }
+};
