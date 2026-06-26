@@ -1,20 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
-import { cookies } from "next/headers";
 import { connectDB } from "../../../backend/src/configs/database";
 import { ApiResponseHelper } from "../../../backend/src/helpers/ApiResponseHelper";
 import { UserRepository } from "../../../backend/src/repositories/user.repository";
 import { UpdateProfileInput, updateProfileSchema } from "../../../backend/src/types/user.type";
-
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY || "default-secret-key";
-
-function getToken(request: NextRequest, tokenCookie?: string) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.substring(7);
-  }
-  return tokenCookie;
-}
+import { getTokenFromRequest, verifyToken } from "../../../backend/src/configs/auth";
 
 async function updateProfileRoute(request: NextRequest) {
   if (request.method !== "PATCH" && request.method !== "PUT") {
@@ -27,8 +16,7 @@ async function updateProfileRoute(request: NextRequest) {
   try {
     await connectDB();
 
-    const cookieStore = await cookies();
-    const authToken = getToken(request, cookieStore.get("token")?.value);
+    const authToken = getTokenFromRequest(request);
 
     if (!authToken) {
       return NextResponse.json(
@@ -37,7 +25,7 @@ async function updateProfileRoute(request: NextRequest) {
       );
     }
 
-    const payload = jwt.verify(authToken, JWT_SECRET) as { userId: string };
+    const payload = verifyToken<{ userId: string }>(authToken);
     const body = (await request.json().catch(() => ({}))) as UpdateProfileInput;
     const validatedData = updateProfileSchema.parse(body);
     const user = await new UserRepository().updateProfile(payload.userId, {
