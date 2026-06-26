@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZodSchema } from "zod";
 import { ApiResponseHelper } from "../helpers/ApiResponseHelper";
 import { HttpException } from "../exceptions/HttpException";
+import { decodeToken, getTokenFromRequest } from "../configs/auth";
 
 export type UserRole = "user" | "admin";
 
@@ -190,23 +191,14 @@ export async function loggingMiddleware(
     const method = req.method;
     const url = req.nextUrl.pathname;
 
-    const authHeader = req.headers.get("authorization");
-    const cookieToken = req.cookies.get("token")?.value;
-    let token: string | undefined;
-
-    if (authHeader?.startsWith("Bearer ")) {
-      token = authHeader.substring(7);
-    } else if (cookieToken) {
-      token = cookieToken;
-    }
-
+    const token = getTokenFromRequest(req);
     const enrichedReq = req as NextRequest & { user?: AuthenticatedUser };
 
     if (token) {
-      try {
-        const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString()) as AuthenticatedUser;
+      const payload = decodeToken<AuthenticatedUser>(token);
+      if (payload) {
         enrichedReq.user = payload;
-      } catch {
+      } else {
         enrichedReq.user = undefined;
       }
     }
