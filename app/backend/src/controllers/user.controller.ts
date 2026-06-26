@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserService } from "../services/user.services";
 import { LoginDTO } from "../dtos/user.dto";
 import { ApiResponseHelper } from "../helpers/ApiResponseHelper";
-import { DUMMY_ADMIN_ID, DUMMY_ADMIN_USER } from "../constants/auth.constants";
+import {
+  getTokenFromRequest,
+  verifyToken,
+} from "../configs/auth";
+import { UserRepository } from "../repositories/user.repository";
 
 const userService = new UserService();
+const userRepository = new UserRepository();
 
 export class UserController {
   async login(req: NextRequest) {
@@ -15,7 +20,7 @@ export class UserController {
 
       return NextResponse.json(
         ApiResponseHelper.success(
-          { token, user: { _id: user._id, full_name: user.full_name, email: user.email, phone: user.phone, vehicle_number: user.vehicle_number, vehicle_type: user.vehicle_type, profile_image_url: user.profileImageUrl ?? null } },
+          { token, user: { _id: user._id, full_name: user.full_name, email: user.email, phone: user.phone, vehicle_number: user.vehicle_number, vehicle_type: user.vehicle_type, profile_image_url: user.profileImageUrl ?? null, createdAt: user.createdAt } },
           "Login successful",
           200
         ),
@@ -32,46 +37,17 @@ export class UserController {
 
   async getCurrentUser(req: NextRequest, token?: string) {
     try {
-      // Support both cookie token and Authorization header
-      let authToken = token;
-      if (!authToken) {
-        const authHeader = req.headers.get("authorization");
-        if (authHeader?.startsWith("Bearer ")) {
-          authToken = authHeader.substring(7);
-        }
-      }
-      
+      const authToken = token || getTokenFromRequest(req);
+
       if (!authToken) {
         return NextResponse.json(
           ApiResponseHelper.error("Unauthorized - No token provided", 401),
           { status: 401 }
         );
       }
-      const jwt = await import("jsonwebtoken");
-      const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY || "default-secret-key";
-      const payload = jwt.verify(authToken, JWT_SECRET) as { userId: string; email: string; role: string };
+      const payload = verifyToken<{ userId: string; email: string; role: string }>(authToken);
 
-      if (payload.userId === DUMMY_ADMIN_ID && payload.role === "admin") {
-        return NextResponse.json(
-          ApiResponseHelper.success(
-            {
-              _id: DUMMY_ADMIN_USER._id,
-              full_name: DUMMY_ADMIN_USER.full_name,
-              email: DUMMY_ADMIN_USER.email,
-              phone: DUMMY_ADMIN_USER.phone,
-              vehicle_number: DUMMY_ADMIN_USER.vehicle_number,
-              vehicle_type: DUMMY_ADMIN_USER.vehicle_type,
-              profile_image_url: DUMMY_ADMIN_USER.profileImageUrl ?? null,
-              role: DUMMY_ADMIN_USER.role,
-            },
-            "User retrieved successfully",
-            200
-          ),
-          { status: 200 }
-        );
-      }
-
-      const user = await new (await import("../repositories/user.repository")).UserRepository().findById(payload.userId);
+      const user = await userRepository.findById(payload.userId);
 
       if (!user) {
         return NextResponse.json(
@@ -90,7 +66,8 @@ export class UserController {
             vehicle_number: user.vehicle_number,
             vehicle_type: user.vehicle_type,
             profile_image_url: user.profileImageUrl ?? null,
-            role: user.role
+            role: user.role,
+            createdAt: user.createdAt,
           },
           "User retrieved successfully",
           200
