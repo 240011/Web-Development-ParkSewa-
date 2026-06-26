@@ -1,21 +1,14 @@
-import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "../configs/database";
+import { getTokenFromRequest, setTokenCookie, verifyToken } from "../configs/auth";
 import { RegisterDTO } from "../dtos/user.dto";
 import { LoginDTO } from "../dtos/user.dto";
 import { ChangePasswordDTO } from "../dtos/user.dto";
 import { UserService } from "../services/user.services";
 import { ApiResponseHelper } from "../helpers/ApiResponseHelper";
-import {
-  DUMMY_ADMIN_EMAIL,
-  DUMMY_ADMIN_USER,
-  isDummyAdminLogin,
-  isDummyAdminToken,
-} from "../constants/auth.constants";
 import type { IUser } from "../models/user.model";
 
 const userService = new UserService();
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY || "default-secret-key";
 
 function publicUser(user: IUser) {
   return {
@@ -27,6 +20,7 @@ function publicUser(user: IUser) {
     vehicle_type: user.vehicle_type,
     profile_image_url: user.profileImageUrl ?? null,
     role: user.role,
+    createdAt: user.createdAt,
   };
 }
 
@@ -40,15 +34,7 @@ function createAuthResponse(user: IUser, token: string, statusCode = 200) {
     { status: statusCode }
   );
 
-  response.cookies.set("token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 3600,
-  });
-
-  return response;
+  return setTokenCookie(response, token);
 }
 
 export async function registerRoute(request: NextRequest) {
@@ -59,7 +45,7 @@ export async function registerRoute(request: NextRequest) {
     const validatedData = RegisterDTO.validate(body);
     const { user, token } = await userService.register(validatedData);
 
-    const response = NextResponse.json(
+    return setTokenCookie(NextResponse.json(
       {
         success: true,
         statusCode: 201,
@@ -72,21 +58,12 @@ export async function registerRoute(request: NextRequest) {
           vehicle_number: user.vehicle_number,
           vehicle_type: user.vehicle_type,
           profile_image_url: user.profileImageUrl ?? null,
+          createdAt: user.createdAt,
           token,
         },
       },
       { status: 201 }
-    );
-
-    response.cookies.set("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 3600,
-    });
-
-    return response;
+    ), token);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Registration failed";
     if (message.includes("already exists")) {
@@ -103,21 +80,11 @@ export async function registerRoute(request: NextRequest) {
 }
 
 export async function loginRoute(request: NextRequest) {
+  await connectDB();
   try {
     const body = await request.json();
     const validatedData = LoginDTO.validate(body);
 
-    if (isDummyAdminLogin(validatedData.email, validatedData.password)) {
-      const token = jwt.sign(
-        { userId: DUMMY_ADMIN_USER._id, email: DUMMY_ADMIN_EMAIL, role: "admin" },
-        JWT_SECRET,
-        { expiresIn: "1h" }
-      );
-
-      return createAuthResponse(DUMMY_ADMIN_USER, token);
-    }
-
-    await connectDB();
     const { user, token } = await userService.login(validatedData);
 
     return createAuthResponse(user, token);
@@ -131,12 +98,7 @@ export async function loginRoute(request: NextRequest) {
 }
 
 function getToken(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.substring(7);
-  }
-
-  return request.cookies.get("token")?.value;
+  return getTokenFromRequest(request);
 }
 
 export async function changePasswordRoute(request: NextRequest) {
@@ -150,15 +112,8 @@ export async function changePasswordRoute(request: NextRequest) {
     );
   }
 
-  if (isDummyAdminToken(token)) {
-    return NextResponse.json(
-      ApiResponseHelper.error("Password cannot be changed for the demo admin account", 403),
-      { status: 403 }
-    );
-  }
-
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const payload = verifyToken<{ userId: string }>(token);
     const body = await request.json();
     const validatedData = ChangePasswordDTO.validate(body);
     const user = await userService.changePassword(payload.userId, validatedData);
@@ -177,13 +132,76 @@ export async function changePasswordRoute(request: NextRequest) {
       ? 401
       : message === "User not found"
         ? 404
-        : message.includes("demo admin")
-          ? 403
-          : 400;
+        : 400;
 
     return NextResponse.json(
       ApiResponseHelper.error(message, statusCode),
       { status: statusCode }
+    );
+  }
+}
+
+export async function requestPasswordResetRoute(request: NextRequest) {
+  await connectDB();
+
+  try {
+    const body = await request.json();
+    const { email } = body as { email: string };
+
+    if (!email) {
+      return NextResponse.json(
+        ApiResponseHelper.error("Email is required", 400),
+        { status: 400 }
+      );
+    }
+
+    await userService.sendResetPasswordEmail(email);
+
+    return NextResponse.json(
+      ApiResponseHelper.success(
+        null,
+        "If the email exists, a reset link has been sent",
+        200
+      ),
+      { status: 200 }
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to send reset email";
+    console.error("requestPasswordResetRoute error:", error);
+    return NextResponse.json(
+      ApiResponseHelper.error(message, 500),
+      { status: 500 }
+    );
+  }
+}
+
+export async function resetPasswordRoute(request: NextRequest, { params }: { params: { token: string } }) {
+  await connectDB();
+
+  try {
+    const { newPassword } = await request.json() as { newPassword: string };
+
+    if (!params.token || !newPassword) {
+      return NextResponse.json(
+        ApiResponseHelper.error("Token and new password are required", 400),
+        { status: 400 }
+      );
+    }
+
+    const user = await userService.resetPassword(params.token, newPassword);
+
+    return NextResponse.json(
+      ApiResponseHelper.success(
+        { user: publicUser(user) },
+        "Password reset successfully",
+        200
+      ),
+      { status: 200 }
+    );
+  } catch {
+    return NextResponse.json(
+      ApiResponseHelper.error("Invalid or expired token", 400),
+      { status: 400 }
     );
   }
 }
