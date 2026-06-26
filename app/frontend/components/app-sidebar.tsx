@@ -10,6 +10,8 @@ import {
   Bell,
   User,
   LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,7 @@ export default function Sidebar() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [countdown, setCountdown] = useState(2);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!showConfirm) return;
@@ -78,60 +81,89 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-background">
-        <div className="flex h-full flex-col">
-          <div className="flex h-16 items-center border-b px-6">
-            <h1 className="text-xl font-bold">ParkSewa</h1>
-          </div>
-          
-          <nav className="flex-1 space-y-1 p-4">
-            {menuItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link key={item.href} href={item.href}>
-                  <Button
-                    variant={isActive ? "default" : "ghost"}
-                    className={cn(
-                      "w-full justify-start gap-3",
-                      isActive && "bg-primary text-primary-foreground"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {item.label}
-                  </Button>
-                </Link>
-              );
-            })}
-          </nav>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="fixed left-4 top-4 z-50 rounded-md border bg-background p-2 shadow-sm md:hidden"
+        aria-label="Open sidebar"
+      >
+        <PanelLeftOpen className="h-5 w-5" />
+      </button>
 
-          <div className="border-t p-4 space-y-1">
-            {bottomItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link key={item.href} href={item.href}>
-                  <Button
-                    variant={isActive ? "default" : "ghost"}
-                    className={cn(
-                      "w-full justify-start gap-3",
-                      isActive && "bg-primary text-primary-foreground"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {item.label}
-                  </Button>
-                </Link>
-              );
-            })}
-            <Button
-              variant="ghost"
-              disabled={loggingOut}
-              onClick={handleLogoutClick}
-              className="w-full justify-start gap-3"
-            >
-              <LogOut className="h-5 w-5" />
-              {loggingOut ? "Logging out…" : "Logout"}
-            </Button>
-          </div>
+      {open && (
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          aria-label="Close sidebar"
+        />
+      )}
+
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col border-r bg-card shadow-xl transition-transform duration-200 md:translate-x-0",
+          open && "translate-x-0"
+        )}
+      >
+        <div className="flex h-16 items-center justify-between border-b px-6">
+          <h1 className="text-xl font-bold">ParkSewa</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setOpen(false)}
+            className="md:hidden"
+          >
+            <PanelLeftClose className="h-5 w-5" />
+          </Button>
+        </div>
+        
+        <nav className="flex-1 space-y-1 p-4">
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
+                <Button
+                  variant={isActive ? "default" : "ghost"}
+                  className={cn(
+                    "w-full justify-start gap-3",
+                    isActive && "bg-primary text-primary-foreground"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Button>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="border-t p-4 space-y-1">
+          {bottomItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
+                <Button
+                  variant={isActive ? "default" : "ghost"}
+                  className={cn(
+                    "w-full justify-start gap-3",
+                    isActive && "bg-primary text-primary-foreground"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Button>
+              </Link>
+            );
+          })}
+          <Button
+            variant="ghost"
+            disabled={loggingOut}
+            onClick={handleLogoutClick}
+            className="w-full justify-start gap-3"
+          >
+            <LogOut className="h-5 w-5" />
+            {loggingOut ? "Logging out…" : "Logout"}
+          </Button>
         </div>
       </aside>
 

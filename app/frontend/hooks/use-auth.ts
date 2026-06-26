@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AUTH } from "@/lib/auth-config";
 
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -11,6 +12,7 @@ export interface User {
   vehicleType: string;
   profileImageUrl: string | null;
   role: "user" | "admin";
+  createdAt: string;
 }
 
 export function getGetCurrentUserQueryKey() {
@@ -23,7 +25,7 @@ export function useAuth() {
   const { data: user, isLoading } = useQuery({
     queryKey: getGetCurrentUserQueryKey(),
     queryFn: async () => {
-      const res = await fetch("/api/v1/auth/current-user", {
+      const res = await fetch(AUTH.WHOAMI, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -32,10 +34,10 @@ export function useAuth() {
         queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
         return null;
       }
-      const json = await res.json() as { data: { _id: string; full_name: string; email: string; phone: string; vehicle_number: string; vehicle_type: string; profile_image_url: string | null; role: string } };
+      const json = await res.json() as { data: { _id: string; full_name: string; email: string; phone: string; vehicle_number: string; vehicle_type: string; profile_image_url: string | null; role: string; createdAt: string } };
       if (!json.data) return null;
       return {
-        id: Number(json.data._id),
+        id: json.data._id,
         name: json.data.full_name,
         email: json.data.email,
         phone: json.data.phone,
@@ -43,6 +45,7 @@ export function useAuth() {
         vehicleType: json.data.vehicle_type,
         profileImageUrl: json.data.profile_image_url ?? null,
         role: json.data.role,
+        createdAt: json.data.createdAt,
       } as User;
     },
     staleTime: 5 * 60 * 1000,
