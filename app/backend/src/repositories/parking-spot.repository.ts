@@ -12,6 +12,8 @@ export type ParkingSpotInput = {
   name: string;
   address: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   totalSlots: number;
   pricePerHour: number;
   vehicleTypes: VehicleType[];
@@ -37,6 +39,8 @@ export class ParkingSpotRepository {
       status: data.status ?? "active",
       images: data.images ?? [],
       availableSlots: data.totalSlots,
+      latitude: data.latitude,
+      longitude: data.longitude,
     });
   }
 
@@ -53,6 +57,8 @@ export class ParkingSpotRepository {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.address !== undefined) updateData.address = data.address;
     if (data.location !== undefined) updateData.location = data.location;
+    if (data.latitude !== undefined) updateData.latitude = data.latitude;
+    if (data.longitude !== undefined) updateData.longitude = data.longitude;
     if (data.totalSlots !== undefined) updateData.totalSlots = nextTotalSlots;
     if (data.pricePerHour !== undefined) updateData.pricePerHour = data.pricePerHour;
     if (data.vehicleTypes !== undefined) updateData.vehicleTypes = data.vehicleTypes;
