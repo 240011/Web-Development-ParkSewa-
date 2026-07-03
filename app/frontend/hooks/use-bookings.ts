@@ -3,12 +3,13 @@
 import { useQuery } from "@tanstack/react-query";
 
 export interface Booking {
-  id: number;
+  id: string;
   spot?: {
     name: string;
   };
   vehicleNumber: string;
   startTime: string;
+  endTime?: string;
   totalAmount: number;
   status: "active" | "pending" | "completed" | "cancelled";
 }
@@ -22,7 +23,11 @@ export function useListBookings() {
     queryKey: getListBookingsQueryKey(),
     queryFn: async (): Promise<Booking[]> => {
       try {
-        const res = await fetch("/api/v1/bookings");
+        const res = await fetch("/api/v1/bookings", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
         if (!res.ok) {
           throw new Error("Failed to fetch bookings");
         }
