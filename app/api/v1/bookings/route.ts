@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
-import { getBookingsRoute } from "../../../backend/src/routes/booking.route";
+import { getBookingsRoute, createBookingRoute } from "../../../backend/src/routes/booking.route";
 
-export async function GET(_request: NextRequest) {
-    return getBookingsRoute(_request);
+export async function GET(request: NextRequest) {
+    return getBookingsRoute(request);
+}
+
+export async function POST(request: NextRequest) {
+    return createBookingRoute(request);
 }
