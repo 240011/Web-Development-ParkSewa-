@@ -13,6 +13,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  Tag,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const menuItems = [
   { href: "/frontend/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/frontend/admin/spots", label: "Parking Spots", icon: MapPin },
   { href: "/frontend/admin/bookings", label: "Bookings", icon: CalendarCheck },
+  { href: "/frontend/admin/promos", label: "Promos", icon: Tag },
   { href: "/frontend/admin/reports", label: "Reports", icon: BarChart3 },
   { href: "/frontend/admin/users", label: "Users", icon: Users },
   { href: "/frontend/admin/settings", label: "Settings", icon: Settings },
