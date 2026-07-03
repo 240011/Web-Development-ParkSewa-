@@ -11,9 +11,21 @@ export const ENDPOINTS = {
     resetPassword: (token: string) => `/api/v1/auth/reset-password/${token}`,
   },
   parkingSpots: {
-    list: "/api/v1/parking-spots",
+    list: (lat?: number, lng?: number) => {
+      const params = new URLSearchParams();
+      if (lat !== undefined) params.set("lat", lat.toString());
+      if (lng !== undefined) params.set("lng", lng.toString());
+      const queryString = params.toString();
+      return queryString ? `/api/v1/parking-spots?${queryString}` : "/api/v1/parking-spots";
+    },
     detail: (id: string) => `/api/v1/parking-spots/${id}`,
     adminList: "/api/v1/admin/parking-spots",
     adminDetail: (id: string) => `/api/v1/admin/parking-spots/${id}`,
+  },
+  promos: {
+    list: "/api/v1/promos",
+    validate: "/api/v1/promos/validate",
+    adminList: "/api/v1/admin/promos",
+    adminGenerate: "/api/v1/admin/promos/generate",
   },
 } as const;
