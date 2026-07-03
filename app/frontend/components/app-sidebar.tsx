@@ -77,6 +77,7 @@ export default function Sidebar() {
     normalizedPathname !== "/frontend/spots" &&
     normalizedPathname !== "/frontend/bookings" &&
     normalizedPathname !== "/frontend/promos" &&
+    normalizedPathname !== "/frontend/notifications" &&
     normalizedPathname !== "/frontend/profile"
   ) {
     return null;

@@ -28,4 +28,8 @@ export const ENDPOINTS = {
     adminList: "/api/v1/admin/promos",
     adminGenerate: "/api/v1/admin/promos/generate",
   },
+  notifications: {
+    list: "/api/v1/notifications",
+    markRead: "/api/v1/notifications/read",
+  },
 } as const;
