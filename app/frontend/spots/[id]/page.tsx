@@ -1,19 +1,24 @@
 "use client";
 
 import { useState, useEffect, useMemo, FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { MapPin, CarFront, Loader2, Calendar, Tag, AlertCircle, ArrowLeft, CheckCircle } from "lucide-react";
+import { MapPin, CarFront, Loader2, Calendar, Tag, AlertCircle, ArrowLeft, CheckCircle, LocateFixed } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 
 interface ParkingSpot {
-  id: number;
+  id: string;
   name: string;
   address: string;
+  location: string;
+  latitude?: number;
+  longitude?: number;
+  distance?: number;
   pricePerHour: number;
   availableSlots: number;
   totalSlots: number;
@@ -22,11 +27,13 @@ interface ParkingSpot {
   images?: string[];
 }
 
-const mockSpots: ParkingSpot[] = [
-  { id: 1, name: "Downtown Parking", address: "Kathmandu Mall, Kathmandu", pricePerHour: 150, availableSlots: 15, totalSlots: 30, status: "active", vehicleTypes: ["car", "bike"], images: [] },
-  { id: 2, name: "Airport Parking", address: "Tribhuvan Airport, Kathmandu", pricePerHour: 200, availableSlots: 8, totalSlots: 20, status: "active", vehicleTypes: ["car"], images: [] },
-  { id: 3, name: "Hospital Parking", address: "Norvic Hospital, Kathmandu", pricePerHour: 100, availableSlots: 0, totalSlots: 15, status: "active", vehicleTypes: ["car"], images: [] },
-];
+const fetchParkingSpot = async (id: string): Promise<ParkingSpot> => {
+  const res = await fetch(`/api/v1/parking-spots/${id}`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load parking spot");
+  const json = await res.json() as { data?: ParkingSpot };
+  if (!json.data) throw new Error("Parking spot not found");
+  return json.data;
+};
 
 const getInitialStartTime = () => {
   const now = new Date();
@@ -41,6 +48,7 @@ export default function SpotDetailPage() {
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [startTime, setStartTime] = useState(getInitialStartTime);
   const [endTime, setEndTime] = useState("");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   const [promoCode, setPromoCode] = useState("");
   const [promoResult, setPromoResult] = useState<{ valid: boolean; discount?: number; finalAmount?: number; error?: string } | null>(null);
@@ -50,7 +58,26 @@ export default function SpotDetailPage() {
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [toast, setToast] = useState<{ title: string; desc: string; type: string } | null>(null);
 
-  const spot = mockSpots.find(s => s.id === Number(spotId)) ?? null;
+  const { data: spot, isLoading } = useQuery<ParkingSpot>({
+    queryKey: ["parking-spot", spotId],
+    queryFn: () => fetchParkingSpot(spotId),
+    enabled: !!spotId,
+  });
+
+  const distance = useMemo(() => {
+    if (!spot?.latitude || !spot?.longitude || !userLocation) return undefined;
+    const R = 6371;
+    const dLat = ((spot.latitude - userLocation.lat) * Math.PI) / 180;
+    const dLng = ((spot.longitude - userLocation.lng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((userLocation.lat * Math.PI) / 180) *
+        Math.cos((spot.latitude * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round((R * c) * 10) / 10;
+  }, [spot, userLocation]);
 
   useEffect(() => {
     if (toast) {
@@ -65,7 +92,7 @@ export default function SpotDetailPage() {
     const end = new Date(endTime).getTime();
     if (end <= start) return 0;
     const hours = Math.max(0.25, Math.ceil((end - start) / (1000 * 60 * 60)));
-    return Math.round(parseFloat((hours * spot.pricePerHour).toFixed(2)));
+    return Math.round(parseFloat((hours * (spot?.pricePerHour ?? 0)).toFixed(2)));
   }, [startTime, endTime, spot]);
 
   const finalPayableAmount = useMemo(() => {
@@ -85,20 +112,30 @@ export default function SpotDetailPage() {
     }
     setValidatingPromo(true);
     try {
-      const code = promoCode.trim().toUpperCase();
-      let result: { valid: boolean; discount?: number; finalAmount?: number; error?: string };
-      if (code === "SAVE10") {
-        result = { valid: true, discount: estimatedAmount * 0.1, finalAmount: estimatedAmount * 0.9 };
-      } else {
-        result = { valid: false, error: "Invalid promo code" };
+      const res = await fetch("/api/v1/promos/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCode.trim(), bookingAmount: estimatedAmount }),
+        credentials: "include",
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.message ?? "Invalid promo code");
       }
-      setPromoResult(result);
+
+      const data = json.data;
+      setPromoResult({
+        valid: true,
+        discount: data.discountAmount,
+        finalAmount: estimatedAmount - data.discountAmount,
+      });
       setValidated(true);
-      if (result.valid) {
-        showToast("Promo Applied!", `Discount of ${formatCurrency(result.discount ?? 0)} applied.`);
-      } else {
-        showToast("Invalid Promo", result.error ?? "This promo code is not valid.", "destructive");
-      }
+      showToast("Promo Applied!", `Discount of ${formatCurrency(data.discountAmount)} applied.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Validation failed";
+      setPromoResult({ valid: false, error: message });
+      showToast("Invalid Promo", message, "destructive");
     } finally {
       setValidatingPromo(false);
     }
@@ -129,12 +166,58 @@ export default function SpotDetailPage() {
     if (!spot) return;
 
     setLoading(true);
-    const bookingId = Date.now();
-    setTimeout(() => {
-      showToast("Booking Created!", "Proceed to payment.");
-      router.push(`/frontend/payment?bookingId=${bookingId}`);
-      setLoading(false);
-    }, 1000);
+    (async () => {
+      try {
+        const res = await fetch("/api/v1/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            spotId: spot.id,
+            vehicleNumber,
+            startTime,
+            endTime,
+            totalAmount: finalPayableAmount,
+            promoCode: promoResult?.valid ? promoCode.trim().toUpperCase() : undefined,
+          }),
+        });
+
+        if (!res.ok) {
+          const json = await res.json();
+          throw new Error(json.message ?? "Failed to create booking");
+        }
+
+        const json = (await res.json()) as { data?: { id: string } };
+        const bookingId = json.data?.id;
+
+        if (bookingId) {
+          showToast("Booking Created!", "Proceed to payment.");
+          router.push(`/frontend/payment?bookingId=${bookingId}`);
+        } else {
+          throw new Error("No booking ID returned");
+        }
+      } catch (error) {
+        showToast("Error", error instanceof Error ? error.message : "Failed to create booking", "destructive");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex items-center gap-4">
+          <Link href="/frontend/spots">
+            <Button variant="ghost" size="sm" className="gap-2 -ml-4">
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold">Loading parking spot…</h1>
+        </div>
+        <Card><CardContent className="p-6"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
+      </div>
+    );
   }
 
   if (!spot) {
@@ -197,10 +280,27 @@ export default function SpotDetailPage() {
               </div>
               <CardContent className="p-6">
                 <h2 className="text-xl font-bold mb-2">{spot.name}</h2>
-                <div className="flex items-center gap-2 text-muted-foreground mb-4">
+<div className="flex items-center gap-2 text-muted-foreground mb-4">
                   <MapPin className="h-4 w-4" />
                   <span>{spot.address}</span>
+                  {distance !== undefined && (
+                    <span className="ml-auto text-xs text-primary font-medium">
+                      {distance} km away
+                    </span>
+                  )}
                 </div>
+                {(!userLocation && spot.latitude && spot.longitude) && (
+                  <button
+                    onClick={() => {
+                      navigator.geolocation?.getCurrentPosition((pos) => {
+                        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                      });
+                    }}
+                    className="flex items-center gap-1 text-xs text-primary hover:underline mb-3"
+                  >
+                    <LocateFixed className="h-3 w-3" /> Show distance from my location
+                  </button>
+                )}
                 <div className="grid grid-cols-3 gap-4 mt-4">
                   <div className="bg-muted/50 p-3 rounded-md text-center">
                     <div className="text-xs text-muted-foreground mb-1">Available</div>
