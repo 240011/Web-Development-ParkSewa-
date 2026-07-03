@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginFormData } from "./schema";
 import { loginAction } from "@/lib/actions/auth-actions";
@@ -10,6 +11,7 @@ import { CarFront, Loader2 } from "lucide-react";
 
 export default function LoginForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ title: string; desc: string; type: string } | null>(null);
 
@@ -35,6 +37,7 @@ export default function LoginForm() {
       const result = await loginAction(data);
       if (result.success) {
         showToast("Welcome back!", "Login successful.", "default");
+        await queryClient.invalidateQueries();
         router.push(result.user?.role === "admin" ? "/frontend/admin/dashboard" : "/frontend/dashboard");
       } else {
         showToast("Login failed", result.message || "Invalid email or password.", "destructive");
@@ -117,6 +120,16 @@ export default function LoginForm() {
               className="text-teal-600 hover:text-teal-800 font-medium cursor-pointer hover:underline"
             >
               Sign Up
+            </button>
+          </p>
+
+          <p className="text-center mt-4">
+            <button
+              type="button"
+              onClick={() => router.push("/frontend/forget_password")}
+              className="text-gray-400 hover:text-teal-600 text-xs font-medium cursor-pointer hover:underline"
+            >
+              Forgot Password?
             </button>
           </p>
         </div>
