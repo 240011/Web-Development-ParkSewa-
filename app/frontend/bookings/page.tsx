@@ -65,7 +65,7 @@ export default function BookingsPage() {
 
   const entities = useMemo<BookingEntity[]>(() => {
     return (bookings ?? []).map((booking) => ({
-      title: `Parking Session #${booking.id}`,
+      title: `Parking Session #${booking.id.toString().slice(-6)}`,
       location: booking.spot?.name ?? "Unknown parking spot",
       date: formatDate(booking.startTime).split(",")[0],
       time: getBookingTime(booking.startTime),
