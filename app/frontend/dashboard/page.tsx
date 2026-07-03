@@ -10,8 +10,8 @@ import { Car, Clock, MapPin, ArrowRight } from "lucide-react";
 import Sidebar from "../components/app-sidebar";
 
 const mockBookings: Booking[] = [
-  { id: 1, spot: { name: "Downtown Parking" }, vehicleNumber: "BA 1 PA 1234", startTime: "2024-01-15T10:00:00Z", totalAmount: 500, status: "active" },
-  { id: 2, spot: { name: "Mall Parking" }, vehicleNumber: "BA 1 PA 1234", startTime: "2024-01-14T10:00:00Z", totalAmount: 300, status: "completed" },
+  { id: "1", spot: { name: "Downtown Parking" }, vehicleNumber: "BA 1 PA 1234", startTime: "2024-01-15T10:00:00Z", totalAmount: 500, status: "active" },
+  { id: "2", spot: { name: "Mall Parking" }, vehicleNumber: "BA 1 PA 1234", startTime: "2024-01-14T10:00:00Z", totalAmount: 300, status: "completed" },
 ];
 
 export default function Dashboard() {
