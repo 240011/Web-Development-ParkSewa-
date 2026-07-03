@@ -1,19 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Search, CarFront } from "lucide-react";
+import { MapPin, Search, CarFront, LocateFixed } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import Sidebar from "../components/app-sidebar";
 
 interface Spot {
-  id: number;
+  id: string;
   name: string;
   address: string;
+  location: string;
+  latitude?: number;
+  longitude?: number;
+  distance?: number;
   pricePerHour: number;
   availableSlots: number;
   totalSlots: number;
@@ -22,18 +27,51 @@ interface Spot {
   images?: string[];
 }
 
-const mockSpots: Spot[] = [
-  { id: 1, name: "Downtown Parking", address: "Kathmandu Mall, Kathmandu", pricePerHour: 150, availableSlots: 15, totalSlots: 30, status: "active", vehicleTypes: ["car", "bike"], images: [] },
-  { id: 2, name: "Airport Parking", address: "Tribhuvan Airport, Kathmandu", pricePerHour: 200, availableSlots: 8, totalSlots: 20, status: "active", vehicleTypes: ["car"], images: [] },
-  { id: 3, name: "Hospital Parking", address: "Norvic Hospital, Kathmandu", pricePerHour: 100, availableSlots: 0, totalSlots: 15, status: "active", vehicleTypes: ["car"], images: [] },
-];
+const fetchSpots = async (lat?: number, lng?: number): Promise<Spot[]> => {
+  const params = new URLSearchParams();
+  if (lat !== undefined) params.set("lat", lat.toString());
+  if (lng !== undefined) params.set("lng", lng.toString());
+  const url = params.toString() ? `/api/v1/parking-spots?${params.toString()}` : "/api/v1/parking-spots?status=active";
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load parking spots");
+  const json = await res.json() as { data?: Spot[] };
+  return json.data ?? [];
+};
 
 export default function SpotsPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
-  const filteredSpots = mockSpots.filter(spot =>
+  const { data: spots = [], isLoading } = useQuery<Spot[]>({
+    queryKey: ["parking-spots", userLocation],
+    queryFn: () => fetchSpots(userLocation?.lat, userLocation?.lng),
+  });
+
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setLocationError(null);
+      },
+      () => {
+        setLocationError("Unable to get your location");
+      }
+    );
+  };
+
+  const filteredSpots = spots.filter(spot =>
     spot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    spot.address.toLowerCase().includes(searchQuery.toLowerCase())
+    spot.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    spot.location.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -45,7 +83,20 @@ export default function SpotsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Find Parking Spots</h1>
             <p className="text-muted-foreground">Discover and book available parking near you</p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={getCurrentLocation}
+            className="flex items-center gap-2"
+          >
+            <LocateFixed className="h-4 w-4" />
+            Use My Location
+          </Button>
         </div>
+
+        {locationError && (
+          <div className="text-sm text-destructive">{locationError}</div>
+        )}
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -57,6 +108,20 @@ export default function SpotsPage() {
           />
         </div>
 
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((item) => (
+              <Card key={item} className="overflow-hidden">
+                <div className="h-48 bg-muted animate-pulse" />
+                <CardContent className="p-4 space-y-3">
+                  <div className="h-5 w-2/3 rounded bg-muted animate-pulse" />
+                  <div className="h-4 w-full rounded bg-muted animate-pulse" />
+                  <div className="h-10 w-full rounded bg-muted animate-pulse" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredSpots.map((spot) => (
             <Card key={spot.id} className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -79,6 +144,11 @@ export default function SpotsPage() {
                   <MapPin className="h-3 w-3" />
                   <span>{spot.address}</span>
                 </div>
+                {spot.distance !== undefined && (
+                  <div className="text-xs text-primary mb-3 font-medium">
+                    {spot.distance} km away
+                  </div>
+                )}
                 <div className="flex justify-between items-center mb-3">
                   <div>
                     <span className="text-xs text-muted-foreground">Price/hr</span>
@@ -112,6 +182,7 @@ export default function SpotsPage() {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );
