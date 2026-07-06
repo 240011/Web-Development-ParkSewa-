@@ -6,10 +6,12 @@ import { BookingRepository } from "../repositories/booking.repository";
 import { ParkingSpotRepository } from "../repositories/parking-spot.repository";
 import { UserRepository } from "../repositories/user.repository";
 import { ParkingSpot } from "../models/parking-spot.model";
+import { NotificationService } from "../services/notification.services";
 
 const bookingRepository = new BookingRepository();
 const parkingSpotRepository = new ParkingSpotRepository();
 const userRepository = new UserRepository();
+const notificationService = new NotificationService();
 
 async function getUser(request: NextRequest) {
   const token = getTokenFromRequest(request);
@@ -186,6 +188,18 @@ export async function createBookingRoute(request: NextRequest) {
       status: booking.status,
       promoCode: booking.promoCode,
     };
+
+    try {
+      await notificationService.createBookingNotification(
+        user.userId,
+        String(booking._id),
+        spot.name,
+        booking.vehicleNumber,
+        booking.startTime
+      );
+    } catch {
+      // Notification creation failed, but booking was successful
+    }
 
     return NextResponse.json(
       ApiResponseHelper.success(formattedBooking, "Booking created successfully", 201),
