@@ -3,6 +3,7 @@ import { RegisterInput } from "../types/user.type";
 
 
 const userModel = User as unknown as {
+  find: (q: Record<string, unknown>) => { exec: () => Promise<IUser[]> };
   findOne: (q: Record<string, unknown>) => { exec: () => Promise<IUser | null> };
   findById: (id: string) => { exec: () => Promise<IUser | null> };
   findByIdAndUpdate: (id: string, update: Record<string, unknown>, opts: { returnDocument?: string; new?: boolean }) => { exec: () => Promise<IUser | null> };
@@ -18,8 +19,8 @@ type UpdateProfileData = {
 };
 
 export class UserRepository {
-  async create(data: RegisterInput & { password: string }): Promise<IUser> {
-    return User.create(data);
+  async create(data: Omit<RegisterInput, "confirmPassword"> & { password: string }): Promise<IUser> {
+    return User.create(data as any);
   }
 
   async findByEmail(email: string): Promise<IUser | null> {
@@ -28,6 +29,10 @@ export class UserRepository {
 
   async findById(id: string): Promise<IUser | null> {
     return userModel.findById(id).exec();
+  }
+
+  async listAll(): Promise<IUser[]> {
+    return userModel.find({}).exec();
   }
 
   async updateProfileImage(id: string, profileImageUrl: string | null): Promise<IUser | null> {
