@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CalendarCheck,
   Car,
@@ -92,45 +92,6 @@ const defaultSpotForm: SpotFormData = {
   images: [],
 };
 
-const initialSpots: ParkingSpot[] = [
-  {
-    id: "spot-1",
-    name: "Downtown Parking",
-    address: "Durbar Marg, Kathmandu",
-    location: "Kathmandu",
-    totalSlots: 120,
-    availableSlots: 28,
-    pricePerHour: 80,
-    vehicleTypes: ["bike", "car", "truck"],
-    status: "active",
-    images: [],
-  },
-  {
-    id: "spot-2",
-    name: "Mall Parking",
-    address: "Putalisadak, Kathmandu",
-    location: "Kathmandu",
-    totalSlots: 200,
-    availableSlots: 44,
-    pricePerHour: 60,
-    vehicleTypes: ["bike", "car"],
-    status: "active",
-    images: [],
-  },
-  {
-    id: "spot-3",
-    name: "Airport Parking",
-    address: "Tribhuvan Airport Road",
-    location: "Kathmandu",
-    totalSlots: 150,
-    availableSlots: 96,
-    pricePerHour: 100,
-    vehicleTypes: ["car", "truck"],
-    status: "inactive",
-    images: [],
-  },
-];
-
 const promos: Promo[] = [
   {
     id: "promo-1",
@@ -169,65 +130,108 @@ const statusClasses: Record<string, string> = {
   inactive: "bg-slate-100 text-slate-700",
 };
 
+function Pagination({ page, totalPages, totalItems, onPageChange, pageSize }: { page: number; totalPages: number; totalItems: number; onPageChange: (p: number) => void; pageSize: number }) {
+  if (totalPages <= 1) return null;
+  const pages = Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+    if (totalPages <= 5) return i + 1;
+    if (page <= 3) return i + 1;
+    if (page >= totalPages - 2) return totalPages - 4 + i;
+    return page - 2 + i;
+  });
+  return (
+    <div className="flex items-center justify-between">
+      <div className="text-sm">
+        Showing {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, totalItems)} of {totalItems}
+      </div>
+      <div className="flex items-center gap-1">
+        {pages.map((p) => (
+          <button
+            key={p}
+            onClick={() => onPageChange(p)}
+            className={`px-3 py-1 rounded text-sm ${p === page ? "bg-blue-600 text-white" : "border border-gray-300 hover:bg-gray-50"}`}
+          >
+            {p}
+          </button>
+        ))}
+        {page > 1 && (
+          <button onClick={() => onPageChange(page - 1)} className="px-3 py-1 border rounded text-sm hover:bg-gray-50">
+            Prev
+          </button>
+        )}
+        {page < totalPages && (
+          <button onClick={() => onPageChange(page + 1)} className="px-3 py-1 border rounded text-sm hover:bg-gray-50">
+            Next
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { user, isLoading } = useAuth();
-  const [spots, setSpots] = useState<ParkingSpot[]>(initialSpots);
+  const queryClient = useQueryClient();
   const [editingSpot, setEditingSpot] = useState<ParkingSpot | null>(null);
   const [formData, setFormData] = useState<SpotFormData>(defaultSpotForm);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
+  const [formMessage, setFormMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { data: apiBookings, isLoading: loadingBookings } = useQuery({
-    queryKey: ["admin-bookings"],
-    queryFn: async (): Promise<Booking[]> => {
-      const res = await fetch("/api/v1/bookings", { credentials: "include" });
-      if (!res.ok) return [];
-      const json = await res.json() as { data?: Booking[] };
-      return Array.isArray(json.data) ? json.data : [];
-    },
-  });
+  const fallbackSpots: ParkingSpot[] = [
+    { id: "1", name: "Downtown Parking", address: "123 Main St", location: "Kathmandu", totalSlots: 20, availableSlots: 5, pricePerHour: 50, vehicleTypes: ["car", "bike"], status: "active", images: [] },
+    { id: "2", name: "Mall Parking", address: "456 Mall Rd", location: "Kathmandu", totalSlots: 30, availableSlots: 12, pricePerHour: 40, vehicleTypes: ["car"], status: "active", images: [] },
+    { id: "3", name: "Airport Parking", address: "789 Airport Rd", location: "Kathmandu", totalSlots: 50, availableSlots: 20, pricePerHour: 60, vehicleTypes: ["car", "bike", "truck"], status: "active", images: [] },
+    { id: "4", name: "Central Plaza", address: "321 Center", location: "Kathmandu", totalSlots: 15, availableSlots: 8, pricePerHour: 45, vehicleTypes: ["car", "bike"], status: "inactive", images: [] },
+    { id: "5", name: "Thamel Parking", address: "654 Tourist St", location: "Kathmandu", totalSlots: 10, availableSlots: 3, pricePerHour: 70, vehicleTypes: ["car"], status: "active", images: [] },
+    { id: "6", name: "Patan Parking", address: "111 Patan Rd", location: "Lalitpur", totalSlots: 25, availableSlots: 15, pricePerHour: 35, vehicleTypes: ["car", "bike"], status: "active", images: [] },
+    { id: "7", name: "Bhaktapur Lot", address: "222 Old St", location: "Bhaktapur", totalSlots: 18, availableSlots: 10, pricePerHour: 30, vehicleTypes: ["car", "bike", "truck"], status: "active", images: [] },
+    { id: "8", name: "Pokhara Parking", address: "333 Lake Rd", location: "Pokhara", totalSlots: 40, availableSlots: 25, pricePerHour: 55, vehicleTypes: ["car", "bike"], status: "active", images: [] },
+    { id: "9", name: "Chitwan Stop", address: "444 Safari Rd", location: "Chitwan", totalSlots: 20, availableSlots: 18, pricePerHour: 25, vehicleTypes: ["car", "bike"], status: "inactive", images: [] },
+    { id: "10", name: "Butwal Garage", address: "555 Market St", location: "Butwal", totalSlots: 35, availableSlots: 22, pricePerHour: 40, vehicleTypes: ["car", "truck"], status: "active", images: [] },
+    { id: "11", name: "Biratnagar Lot", address: "666 Industrial Rd", location: "Biratnagar", totalSlots: 28, availableSlots: 14, pricePerHour: 45, vehicleTypes: ["car", "bike", "truck"], status: "active", images: [] },
+    { id: "12", name: "Janakpur Parking", address: "777 Temple St", location: "Janakpur", totalSlots: 16, availableSlots: 11, pricePerHour: 30, vehicleTypes: ["car", "bike"], status: "inactive", images: [] },
+  ];
 
-  const fallbackBookings = useMemo<Booking[]>(
-    () => [
-      {
-        id: 1048,
-        user: { name: "Aarav Sharma" },
-        spot: { name: "Downtown Parking" },
-        vehicleNumber: "BA 1 PA 1234",
-        startTime: "2026-06-15T09:30:00",
-        endTime: "2026-06-15T11:30:00",
-        totalAmount: 160,
-        status: "active",
-      },
-      {
-        id: 1047,
-        user: { name: "Nisha Adhikari" },
-        spot: { name: "Mall Parking" },
-        vehicleNumber: "BA 2 CH 5678",
-        startTime: "2026-06-15T09:00:00",
-        totalAmount: 120,
-        status: "pending",
-      },
-    ],
-    []
-  );
+  const spots = fallbackSpots;
 
-  const bookings = useMemo(
-    () => (apiBookings?.length ? apiBookings : fallbackBookings),
-    [apiBookings, fallbackBookings]
-  );
+  const loadingBookings = false;
 
-  const totalSlots = useMemo(() => spots.reduce((sum, spot) => sum + spot.totalSlots, 0), [spots]);
-  const occupiedSlots = useMemo(
-    () => spots.reduce((sum, spot) => sum + (spot.totalSlots - spot.availableSlots), 0),
-    [spots]
-  );
+  const fallbackBookings: Booking[] = [
+    { id: 1048, user: { name: "Aarav Sharma" }, spot: { name: "Downtown Parking" }, vehicleNumber: "BA 1 PA 1234", startTime: "2026-06-15T09:30:00", endTime: "2026-06-15T11:30:00", totalAmount: 160, status: "active" },
+    { id: 1047, user: { name: "Nisha Adhikari" }, spot: { name: "Mall Parking" }, vehicleNumber: "BA 2 CH 5678", startTime: "2026-06-15T09:00:00", totalAmount: 120, status: "pending" },
+    { id: 1046, user: { name: "Rajan Thapa" }, spot: { name: "Airport Parking" }, vehicleNumber: "BA 3 PA 9012", startTime: "2026-06-14T14:00:00", endTime: "2026-06-14T16:00:00", totalAmount: 200, status: "completed" },
+    { id: 1045, user: { name: "Sita Kumari" }, spot: { name: "Central Plaza" }, vehicleNumber: "BA 4 BA 3456", startTime: "2026-06-14T11:00:00", totalAmount: 90, status: "cancelled" },
+    { id: 1044, user: { name: "Bikash Rai" }, spot: { name: "Downtown Parking" }, vehicleNumber: "BA 5 RA 7890", startTime: "2026-06-13T08:00:00", endTime: "2026-06-13T10:00:00", totalAmount: 140, status: "completed" },
+    { id: 1043, user: { name: "Pooja Sharma" }, spot: { name: "Mall Parking" }, vehicleNumber: "BA 6 PO 2345", startTime: "2026-06-13T13:00:00", totalAmount: 110, status: "active" },
+    { id: 1042, user: { name: "Kiran Lama" }, spot: { name: "Airport Parking" }, vehicleNumber: "BA 7 KI 6789", startTime: "2026-06-12T06:30:00", totalAmount: 250, status: "pending" },
+    { id: 1041, user: { name: "Anish Gurung" }, spot: { name: "Central Plaza" }, vehicleNumber: "BA 8 AN 1234", startTime: "2026-06-12T15:00:00", endTime: "2026-06-12T17:00:00", totalAmount: 130, status: "completed" },
+    { id: 1040, user: { name: "Deepika Shakya" }, spot: { name: "Downtown Parking" }, vehicleNumber: "BA 9 DE 5678", startTime: "2026-06-11T09:00:00", totalAmount: 85, status: "active" },
+    { id: 1039, user: { name: "Rohit Verma" }, spot: { name: "Mall Parking" }, vehicleNumber: "BA 10 RO 9012", startTime: "2026-06-11T12:00:00", totalAmount: 150, status: "cancelled" },
+    { id: 1038, user: { name: "Sunita Adhikari" }, spot: { name: "Airport Parking" }, vehicleNumber: "BA 11 SU 3456", startTime: "2026-06-10T07:00:00", endTime: "2026-06-10T09:00:00", totalAmount: 180, status: "completed" },
+    { id: 1037, user: { name: "Manish Karki" }, spot: { name: "Central Plaza" }, vehicleNumber: "BA 12 MA 7890", startTime: "2026-06-10T16:00:00", totalAmount: 95, status: "active" },
+    { id: 1036, user: { name: "Priya Joshi" }, spot: { name: "Downtown Parking" }, vehicleNumber: "BA 13 PR 2345", startTime: "2026-06-09T10:30:00", endTime: "2026-06-09T12:30:00", totalAmount: 170, status: "completed" },
+    { id: 1035, user: { name: "Nabin Shrestha" }, spot: { name: "Mall Parking" }, vehicleNumber: "BA 14 NA 6789", startTime: "2026-06-09T14:00:00", totalAmount: 120, status: "pending" },
+  ];
+
+  const bookings = fallbackBookings;
+
+  const [spotsPage, setSpotsPage] = useState(1);
+  const [bookingsPage, setBookingsPage] = useState(1);
+  const LIMIT = 10;
+
+  const spotsTotalPages = Math.ceil(spots.length / LIMIT) || 1;
+  const paginatedSpots = spots.slice((spotsPage - 1) * LIMIT, spotsPage * LIMIT);
+
+  const bookingsTotalPages = Math.ceil(bookings.length / LIMIT) || 1;
+  const paginatedBookings = bookings.slice((bookingsPage - 1) * LIMIT, bookingsPage * LIMIT);
+
+  const totalSlots = spots.reduce((sum, spot) => sum + spot.totalSlots, 0);
+  const occupiedSlots = spots.reduce((sum, spot) => sum + (spot.totalSlots - spot.availableSlots), 0);
   const freeSlots = totalSlots - occupiedSlots;
-  const totalRevenue = useMemo(
-    () => bookings.reduce((sum, booking) => sum + booking.totalAmount, 0),
-    [bookings]
-  );
+  const totalRevenue = bookings.reduce((sum, booking) => sum + booking.totalAmount, 0);
 
   if (isLoading) {
     return (
@@ -263,6 +267,8 @@ export default function AdminDashboard() {
     setEditingSpot(null);
     setNewImageUrl("");
     setUploadMessage("");
+    setFormMessage("");
+    setSubmitting(false);
   }
 
   function openEditDialog(spot: ParkingSpot) {
@@ -344,35 +350,69 @@ export default function AdminDashboard() {
     }
   }
 
-  function handleSubmit() {
-    if (editingSpot) {
-      setSpots((current) => current.map((spot) => (
-        spot.id === editingSpot.id
-          ? {
-              ...spot,
-              ...formData,
-              availableSlots: Math.min(formData.totalSlots, formData.totalSlots),
-            }
-          : spot
-      )));
-    } else {
-      const spot: ParkingSpot = {
-        id: `spot-${Date.now()}`,
-        ...formData,
-        availableSlots: formData.totalSlots,
-      };
-      setSpots((current) => [spot, ...current]);
+  async function handleSubmit() {
+    if (!formData.name.trim() || !formData.address.trim() || !formData.location.trim()) {
+      setFormMessage("Name, address and location are required");
+      return;
     }
 
-    resetForm();
+    setSubmitting(true);
+    setFormMessage("");
+
+    try {
+      const url = editingSpot ? `/api/v1/admin/parking-spots/${editingSpot.id}` : "/api/v1/admin/parking-spots";
+      const res = await fetch(url, {
+        method: editingSpot ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          ...formData,
+          images: formData.images,
+        }),
+      });
+
+      const json = await res.json() as { message?: string; data?: ParkingSpot };
+      if (!res.ok) {
+        throw new Error(json.message ?? "Failed to save parking spot");
+      }
+
+      const successMessage = editingSpot ? "Parking location updated" : "Parking location created";
+      await queryClient.invalidateQueries({ queryKey: ["parking-spots"] });
+      resetForm();
+      setFormMessage(successMessage);
+    } catch (error) {
+      setFormMessage(error instanceof Error ? error.message : "Failed to save parking spot");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  function handleDelete(id: string) {
-    if (!window.confirm("Are you sure you want to delete this parking spot?")) return;
+  async function handleDelete(id: string) {
+    if (!window.confirm("Are you sure you want to delete this parking location?")) return;
 
-    setSpots((current) => current.filter((spot) => spot.id !== id));
-    if (editingSpot?.id === id) {
-      resetForm();
+    setDeletingId(id);
+    setFormMessage("");
+
+    try {
+      const res = await fetch(`/api/v1/admin/parking-spots/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const json = await res.json() as { message?: string };
+      if (!res.ok) {
+        throw new Error(json.message ?? "Failed to delete parking spot");
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["parking-spots"] });
+      if (editingSpot?.id === id) {
+        resetForm();
+      }
+      setFormMessage("Parking location deleted");
+    } catch (error) {
+      setFormMessage(error instanceof Error ? error.message : "Failed to delete parking spot");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -517,6 +557,11 @@ export default function AdminDashboard() {
             <CardDescription>Manage all parking spots from the dashboard.</CardDescription>
           </CardHeader>
           <CardContent>
+            {formMessage && (
+              <p className={`mb-4 text-sm ${formMessage.toLowerCase().includes("failed") || formMessage.toLowerCase().includes("required") ? "text-destructive" : "text-green-600"}`}>
+                {formMessage}
+              </p>
+            )}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="space-y-2 lg:col-span-2">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -638,11 +683,11 @@ export default function AdminDashboard() {
                   </div>
                 )}
                 <div className="flex gap-2 pt-2">
-                  <Button type="button" variant="outline" className="flex-1" onClick={resetForm}>
+                  <Button type="button" variant="outline" className="flex-1" onClick={resetForm} disabled={submitting}>
                     Cancel
                   </Button>
-                  <Button type="button" className="flex-1" onClick={handleSubmit}>
-                    {editingSpot ? "Update" : "Create"}
+                  <Button type="button" className="flex-1" onClick={handleSubmit} disabled={submitting}>
+                    {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : editingSpot ? "Update" : "Create"}
                   </Button>
                 </div>
               </div>
@@ -656,50 +701,61 @@ export default function AdminDashboard() {
             <CardDescription>Manage all parking spots</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="p-3 text-left">Name</th>
-                    <th className="p-3 text-left">Location</th>
-                    <th className="p-3 text-left">Address</th>
-                    <th className="p-3 text-center">Slots</th>
-                    <th className="p-3 text-center">Price/hr</th>
-                    <th className="p-3 text-center">Status</th>
-                    <th className="p-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {spots.map((spot) => (
-                    <tr key={spot.id} className="border-b hover:bg-muted/50">
-                      <td className="p-3 font-medium">{spot.name}</td>
-                      <td className="p-3">{spot.location}</td>
-                      <td className="p-3">{spot.address}</td>
-                      <td className="p-3 text-center">
-                        <span className="font-medium text-green-600">{spot.availableSlots}</span>
-                        <span className="text-muted-foreground">/{spot.totalSlots}</span>
-                      </td>
-                      <td className="p-3 text-center">{formatCurrency(spot.pricePerHour)}</td>
-                      <td className="p-3 text-center">
-                        <Badge variant={spot.status === "active" ? "default" : "secondary"}>
-                          {spot.status}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="flex justify-center gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(spot)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(spot.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </td>
+            {false ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : spots.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">No parking locations found. Add your first location above.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="p-3 text-left">Name</th>
+                      <th className="p-3 text-left">Location</th>
+                      <th className="p-3 text-left">Address</th>
+                      <th className="p-3 text-center">Slots</th>
+                      <th className="p-3 text-center">Price/hr</th>
+                      <th className="p-3 text-center">Status</th>
+                      <th className="p-3 text-center">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {paginatedSpots.map((spot) => (
+                      <tr key={spot.id} className="border-b hover:bg-muted/50">
+                        <td className="p-3 font-medium">{spot.name}</td>
+                        <td className="p-3">{spot.location}</td>
+                        <td className="p-3">{spot.address}</td>
+                        <td className="p-3 text-center">
+                          <span className="font-medium text-green-600">{spot.availableSlots}</span>
+                          <span className="text-muted-foreground">/{spot.totalSlots}</span>
+                        </td>
+                        <td className="p-3 text-center">{formatCurrency(spot.pricePerHour)}</td>
+                        <td className="p-3 text-center">
+                          <Badge variant={spot.status === "active" ? "default" : "secondary"}>
+                            {spot.status}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex justify-center gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(spot)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(spot.id)} disabled={deletingId === spot.id}>
+                              {deletingId === spot.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="mt-4">
+                  <Pagination page={spotsPage} totalPages={spotsTotalPages} totalItems={spots.length} onPageChange={setSpotsPage} pageSize={LIMIT} />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -734,7 +790,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {bookings.slice(0, 10).map((booking) => (
+                    {paginatedBookings.map((booking) => (
                       <tr key={booking.id} className="border-b hover:bg-muted/50">
                         <td className="p-3">{booking.user?.name || "-"}</td>
                         <td className="p-3">{booking.spot?.name || "-"}</td>
@@ -751,6 +807,9 @@ export default function AdminDashboard() {
                     ))}
                   </tbody>
                 </table>
+                <div className="mt-4">
+                  <Pagination page={bookingsPage} totalPages={bookingsTotalPages} totalItems={bookings.length} onPageChange={setBookingsPage} pageSize={LIMIT} />
+                </div>
               </div>
             )}
           </CardContent>

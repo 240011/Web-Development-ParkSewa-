@@ -1,6 +1,13 @@
 import { User, IUser } from "../models/user.model";
 import { RegisterInput } from "../types/user.type";
 
+
+const userModel = User as unknown as {
+  findOne: (q: Record<string, unknown>) => { exec: () => Promise<IUser | null> };
+  findById: (id: string) => { exec: () => Promise<IUser | null> };
+  findByIdAndUpdate: (id: string, update: Record<string, unknown>, opts: { returnDocument?: string; new?: boolean }) => { exec: () => Promise<IUser | null> };
+};
+
 type UpdateProfileData = {
   full_name?: string;
   email?: string;
@@ -16,19 +23,15 @@ export class UserRepository {
   }
 
   async findByEmail(email: string): Promise<IUser | null> {
-    return User.findOne({ email }).exec();
+    return userModel.findOne({ email } as Record<string, unknown>).exec();
   }
 
   async findById(id: string): Promise<IUser | null> {
-    return User.findById(id).exec();
+    return userModel.findById(id).exec();
   }
 
   async updateProfileImage(id: string, profileImageUrl: string | null): Promise<IUser | null> {
-    return User.findByIdAndUpdate(
-      id,
-      { profileImageUrl },
-      { returnDocument: "after" }
-    ).exec();
+    return userModel.findByIdAndUpdate(id, { profileImageUrl }, { returnDocument: "after" }).exec();
   }
 
   async updateProfile(id: string, data: UpdateProfileData): Promise<IUser | null> {
@@ -45,14 +48,10 @@ export class UserRepository {
       return this.findById(id);
     }
 
-    return User.findByIdAndUpdate(id, updateData, { returnDocument: "after" }).exec();
+    return userModel.findByIdAndUpdate(id, updateData, { returnDocument: "after" }).exec();
   }
 
   async updatePassword(id: string, password: string): Promise<IUser | null> {
-    return User.findByIdAndUpdate(
-      id,
-      { password },
-      { returnDocument: "after" }
-    ).exec();
+    return userModel.findByIdAndUpdate(id, { password }, { returnDocument: "after" }).exec();
   }
 }

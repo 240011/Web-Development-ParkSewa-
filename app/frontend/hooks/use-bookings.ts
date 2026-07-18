@@ -28,7 +28,7 @@ export function useListBookings() {
         }
         const json = await res.json();
         return Array.isArray(json?.data) ? json.data : [];
-      } catch (error) {
+      } catch {
         return [];
       }
     },

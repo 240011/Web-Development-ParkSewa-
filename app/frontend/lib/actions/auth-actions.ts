@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { registerSchema, loginSchema, changePasswordSchema } from "@/(auth)/_components/schema";
 import { ENDPOINTS } from "@/lib/endpoints";
-import { setTokenCookie, deleteTokenCookie, getTokenCookie } from "@/lib/cookies";
+import { setTokenCookie, getTokenCookie, deleteTokenCookie } from "@/lib/cookies";
 
 async function getBaseUrl() {
   const headersList = await headers();
@@ -148,6 +148,49 @@ export async function changePasswordAction(data: unknown) {
     };
   }
 }
+export const handleRequestPasswordReset = async (email: string) => {
+    try {
+      const baseUrl = await getBaseUrl();
+      const response = await fetch(`${baseUrl}/api/v1/auth/request-password-reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { success: false, message: error.message || 'Request password reset failed' };
+      }
+
+      const data = await response.json();
+      return { success: true, message: data.message };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Request password reset failed';
+      return { success: false, message };
+    }
+  };
+
+  export const handleResetPassword = async (token: string, newPassword: string) => {
+    try {
+      const baseUrl = await getBaseUrl();
+      const response = await fetch(`${baseUrl}/api/v1/auth/reset-password/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { success: false, message: error.message || 'Reset password failed' };
+      }
+
+      const data = await response.json();
+      return { success: true, message: data.message };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Reset password failed';
+      return { success: false, message };
+    }
+  }
 
 export async function logoutAction() {
   try {
@@ -157,3 +200,4 @@ export async function logoutAction() {
     return { success: false as const, message: "Network error. Please try again." };
   }
 }
+

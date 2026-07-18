@@ -1,11 +1,12 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { DUMMY_ADMIN_ID, DUMMY_ADMIN_USER, isDummyAdminLogin } from "../constants/auth.constants";
+import { signToken } from "../configs/auth";
+import { JWT_SECRET } from "../configs/auth";
+import { CLIENT_URL } from "../constants/constant";
+import { sendEmail } from "../configs/email";
 import { UserRepository } from "../repositories/user.repository";
 import { RegisterInput, LoginInput, ChangePasswordInput } from "../types/user.type";
 import { IUser } from "../models/user.model";
-
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY || "default-secret-key";
 
 export class UserService {
   private userRepository: UserRepository;
@@ -15,26 +16,23 @@ export class UserService {
   }
 
   private generateToken(user: Pick<IUser, "_id" | "email" | "role">) {
-    return jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    return signToken({
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+    });
   }
 
   async register(data: RegisterInput): Promise<{ user: IUser; token: string }> {
-    if (data.email.toLowerCase() === DUMMY_ADMIN_USER.email.toLowerCase()) {
-      throw new Error("User with this email already exists");
-    }
-
     const existingUser = await this.userRepository.findByEmail(data.email);
     if (existingUser) {
       throw new Error("User with this email already exists");
     }
 
+    const { confirmPassword: _confirmPassword, ...userData } = data;
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const user = await this.userRepository.create({
-      ...data,
+      ...userData,
       password: hashedPassword,
     });
 
@@ -42,12 +40,12 @@ export class UserService {
   }
 
   async login(data: LoginInput): Promise<{ user: IUser; token: string }> {
-    if (isDummyAdminLogin(data.email, data.password)) {
-      return { user: DUMMY_ADMIN_USER, token: this.generateToken(DUMMY_ADMIN_USER) };
-    }
-
     const user = await this.userRepository.findByEmail(data.email);
     if (!user) {
+      throw new Error("Invalid email or password");
+    }
+
+    if (!user.password) {
       throw new Error("Invalid email or password");
     }
 
@@ -60,10 +58,6 @@ export class UserService {
   }
 
   async changePassword(userId: string, data: ChangePasswordInput): Promise<IUser> {
-    if (userId === DUMMY_ADMIN_ID) {
-      throw new Error("Password cannot be changed for the demo admin account");
-    }
-
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new Error("User not found");
@@ -82,5 +76,46 @@ export class UserService {
     }
 
     return updatedUser;
+  }
+
+  async sendResetPasswordEmail(email: string): Promise<void> {
+    if (!email) {
+      return;
+    }
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) {
+      return;
+    }
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' });
+    const resetLink = `${CLIENT_URL}/frontend/reset_password?token=${token}`;
+    const html = `<p>Click <a href="${resetLink}">here</a> to reset your password. This link will expire in 1 hour.</p>`;
+    try {
+      await sendEmail(user.email, 'Password Reset', html);
+    } catch (emailError: unknown) {
+      console.error("Failed to send reset email:", emailError);
+      throw new Error("Failed to send reset email");
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<IUser> {
+    try {
+      if (!token || !newPassword) {
+        throw new Error("Token and new password are required");
+      }
+      const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
+      const userId = decoded.id;
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        throw new Error("User not found");
+      }
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const updatedUser = await this.userRepository.updatePassword(userId, hashedPassword);
+      if (!updatedUser) {
+        throw new Error("Failed to update password");
+      }
+      return updatedUser;
+    } catch {
+      throw new Error("Invalid or expired token");
+    }
   }
 }
