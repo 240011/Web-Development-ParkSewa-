@@ -12,6 +12,7 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ const menuItems = [
   { href: "/frontend/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/frontend/spots", label: "Find Spots", icon: Search },
   { href: "/frontend/bookings", label: "My Bookings", icon: Calendar },
+  { href: "/frontend/promos", label: "Promos", icon: Tag },
   { href: "/frontend/notifications", label: "Notifications", icon: Bell },
 ];
 
@@ -74,6 +76,8 @@ export default function Sidebar() {
     normalizedPathname !== "/frontend/dashboard" &&
     normalizedPathname !== "/frontend/spots" &&
     normalizedPathname !== "/frontend/bookings" &&
+    normalizedPathname !== "/frontend/promos" &&
+    normalizedPathname !== "/frontend/notifications" &&
     normalizedPathname !== "/frontend/profile"
   ) {
     return null;

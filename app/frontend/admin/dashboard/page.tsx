@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarCheck,
   Car,
@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
+import { ENDPOINTS } from "@/lib/endpoints";
 import AdminSidebar from "@/components/admin-sidebar";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,8 @@ type ParkingSpot = {
   name: string;
   address: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   totalSlots: number;
   availableSlots: number;
   pricePerHour: number;
@@ -52,7 +55,7 @@ type ParkingSpot = {
 type Promo = {
   id: string;
   code: string;
-  description: string;
+  description?: string;
   discountType: "percentage" | "fixed";
   value: number;
   expiryDate: string;
@@ -60,7 +63,7 @@ type Promo = {
 };
 
 type Booking = {
-  id: number;
+  id: string;
   user?: { name: string };
   spot?: { name: string };
   vehicleNumber: string;
@@ -74,6 +77,8 @@ type SpotFormData = {
   name: string;
   address: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   totalSlots: number;
   pricePerHour: number;
   vehicleTypes: VehicleType[];
@@ -85,42 +90,14 @@ const defaultSpotForm: SpotFormData = {
   name: "",
   address: "",
   location: "",
+  latitude: undefined,
+  longitude: undefined,
   totalSlots: 10,
   pricePerHour: 50,
   vehicleTypes: ["car"],
   status: "active",
   images: [],
 };
-
-const promos: Promo[] = [
-  {
-    id: "promo-1",
-    code: "PARK20",
-    description: "20% off on weekday bookings",
-    discountType: "percentage",
-    value: 20,
-    expiryDate: "2026-07-30",
-    isActive: true,
-  },
-  {
-    id: "promo-2",
-    code: "WEEKEND50",
-    description: "Rs 50 off weekend parking",
-    discountType: "fixed",
-    value: 50,
-    expiryDate: "2026-06-30",
-    isActive: true,
-  },
-  {
-    id: "promo-3",
-    code: "FIRSTPARK",
-    description: "First parking discount",
-    discountType: "percentage",
-    value: 15,
-    expiryDate: "2026-06-20",
-    isActive: false,
-  },
-];
 
 const statusClasses: Record<string, string> = {
   active: "bg-blue-100 text-blue-700",
@@ -169,7 +146,7 @@ function Pagination({ page, totalPages, totalItems, onPageChange, pageSize }: { 
 }
 
 export default function AdminDashboard() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [editingSpot, setEditingSpot] = useState<ParkingSpot | null>(null);
   const [formData, setFormData] = useState<SpotFormData>(defaultSpotForm);
@@ -180,43 +157,37 @@ export default function AdminDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const fallbackSpots: ParkingSpot[] = [
-    { id: "1", name: "Downtown Parking", address: "123 Main St", location: "Kathmandu", totalSlots: 20, availableSlots: 5, pricePerHour: 50, vehicleTypes: ["car", "bike"], status: "active", images: [] },
-    { id: "2", name: "Mall Parking", address: "456 Mall Rd", location: "Kathmandu", totalSlots: 30, availableSlots: 12, pricePerHour: 40, vehicleTypes: ["car"], status: "active", images: [] },
-    { id: "3", name: "Airport Parking", address: "789 Airport Rd", location: "Kathmandu", totalSlots: 50, availableSlots: 20, pricePerHour: 60, vehicleTypes: ["car", "bike", "truck"], status: "active", images: [] },
-    { id: "4", name: "Central Plaza", address: "321 Center", location: "Kathmandu", totalSlots: 15, availableSlots: 8, pricePerHour: 45, vehicleTypes: ["car", "bike"], status: "inactive", images: [] },
-    { id: "5", name: "Thamel Parking", address: "654 Tourist St", location: "Kathmandu", totalSlots: 10, availableSlots: 3, pricePerHour: 70, vehicleTypes: ["car"], status: "active", images: [] },
-    { id: "6", name: "Patan Parking", address: "111 Patan Rd", location: "Lalitpur", totalSlots: 25, availableSlots: 15, pricePerHour: 35, vehicleTypes: ["car", "bike"], status: "active", images: [] },
-    { id: "7", name: "Bhaktapur Lot", address: "222 Old St", location: "Bhaktapur", totalSlots: 18, availableSlots: 10, pricePerHour: 30, vehicleTypes: ["car", "bike", "truck"], status: "active", images: [] },
-    { id: "8", name: "Pokhara Parking", address: "333 Lake Rd", location: "Pokhara", totalSlots: 40, availableSlots: 25, pricePerHour: 55, vehicleTypes: ["car", "bike"], status: "active", images: [] },
-    { id: "9", name: "Chitwan Stop", address: "444 Safari Rd", location: "Chitwan", totalSlots: 20, availableSlots: 18, pricePerHour: 25, vehicleTypes: ["car", "bike"], status: "inactive", images: [] },
-    { id: "10", name: "Butwal Garage", address: "555 Market St", location: "Butwal", totalSlots: 35, availableSlots: 22, pricePerHour: 40, vehicleTypes: ["car", "truck"], status: "active", images: [] },
-    { id: "11", name: "Biratnagar Lot", address: "666 Industrial Rd", location: "Biratnagar", totalSlots: 28, availableSlots: 14, pricePerHour: 45, vehicleTypes: ["car", "bike", "truck"], status: "active", images: [] },
-    { id: "12", name: "Janakpur Parking", address: "777 Temple St", location: "Janakpur", totalSlots: 16, availableSlots: 11, pricePerHour: 30, vehicleTypes: ["car", "bike"], status: "inactive", images: [] },
-  ];
+  const { data: spots = [], isLoading: spotsLoading, refetch: refetchSpots } = useQuery<ParkingSpot[]>({
+    queryKey: ["admin-parking-spots"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/parking-spots", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load parking spots");
+      const json = await res.json() as { data?: ParkingSpot[] };
+      return json.data ?? [];
+    },
+  });
 
-  const spots = fallbackSpots;
+const { data: bookings = [], isLoading: bookingsLoading } = useQuery<Booking[]>({
+    queryKey: ["admin-bookings"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/bookings", { credentials: "include" });
+      if (!res.ok) return [] as Booking[];
+      const json = await res.json() as { data?: Booking[] };
+      return json.data ?? [];
+    },
+  });
 
-  const loadingBookings = false;
+  const { data: promos = [], isLoading: promosLoading } = useQuery<Promo[]>({
+    queryKey: ["admin-promos"],
+    queryFn: async () => {
+      const res = await fetch(ENDPOINTS.promos.adminList, { credentials: "include" });
+      if (!res.ok) return [] as Promo[];
+      const json = await res.json() as { data?: Promo[] };
+      return json.data ?? [];
+    },
+  });
 
-  const fallbackBookings: Booking[] = [
-    { id: 1048, user: { name: "Aarav Sharma" }, spot: { name: "Downtown Parking" }, vehicleNumber: "BA 1 PA 1234", startTime: "2026-06-15T09:30:00", endTime: "2026-06-15T11:30:00", totalAmount: 160, status: "active" },
-    { id: 1047, user: { name: "Nisha Adhikari" }, spot: { name: "Mall Parking" }, vehicleNumber: "BA 2 CH 5678", startTime: "2026-06-15T09:00:00", totalAmount: 120, status: "pending" },
-    { id: 1046, user: { name: "Rajan Thapa" }, spot: { name: "Airport Parking" }, vehicleNumber: "BA 3 PA 9012", startTime: "2026-06-14T14:00:00", endTime: "2026-06-14T16:00:00", totalAmount: 200, status: "completed" },
-    { id: 1045, user: { name: "Sita Kumari" }, spot: { name: "Central Plaza" }, vehicleNumber: "BA 4 BA 3456", startTime: "2026-06-14T11:00:00", totalAmount: 90, status: "cancelled" },
-    { id: 1044, user: { name: "Bikash Rai" }, spot: { name: "Downtown Parking" }, vehicleNumber: "BA 5 RA 7890", startTime: "2026-06-13T08:00:00", endTime: "2026-06-13T10:00:00", totalAmount: 140, status: "completed" },
-    { id: 1043, user: { name: "Pooja Sharma" }, spot: { name: "Mall Parking" }, vehicleNumber: "BA 6 PO 2345", startTime: "2026-06-13T13:00:00", totalAmount: 110, status: "active" },
-    { id: 1042, user: { name: "Kiran Lama" }, spot: { name: "Airport Parking" }, vehicleNumber: "BA 7 KI 6789", startTime: "2026-06-12T06:30:00", totalAmount: 250, status: "pending" },
-    { id: 1041, user: { name: "Anish Gurung" }, spot: { name: "Central Plaza" }, vehicleNumber: "BA 8 AN 1234", startTime: "2026-06-12T15:00:00", endTime: "2026-06-12T17:00:00", totalAmount: 130, status: "completed" },
-    { id: 1040, user: { name: "Deepika Shakya" }, spot: { name: "Downtown Parking" }, vehicleNumber: "BA 9 DE 5678", startTime: "2026-06-11T09:00:00", totalAmount: 85, status: "active" },
-    { id: 1039, user: { name: "Rohit Verma" }, spot: { name: "Mall Parking" }, vehicleNumber: "BA 10 RO 9012", startTime: "2026-06-11T12:00:00", totalAmount: 150, status: "cancelled" },
-    { id: 1038, user: { name: "Sunita Adhikari" }, spot: { name: "Airport Parking" }, vehicleNumber: "BA 11 SU 3456", startTime: "2026-06-10T07:00:00", endTime: "2026-06-10T09:00:00", totalAmount: 180, status: "completed" },
-    { id: 1037, user: { name: "Manish Karki" }, spot: { name: "Central Plaza" }, vehicleNumber: "BA 12 MA 7890", startTime: "2026-06-10T16:00:00", totalAmount: 95, status: "active" },
-    { id: 1036, user: { name: "Priya Joshi" }, spot: { name: "Downtown Parking" }, vehicleNumber: "BA 13 PR 2345", startTime: "2026-06-09T10:30:00", endTime: "2026-06-09T12:30:00", totalAmount: 170, status: "completed" },
-    { id: 1035, user: { name: "Nabin Shrestha" }, spot: { name: "Mall Parking" }, vehicleNumber: "BA 14 NA 6789", startTime: "2026-06-09T14:00:00", totalAmount: 120, status: "pending" },
-  ];
-
-  const bookings = fallbackBookings;
+  const isLoading = authLoading || spotsLoading || bookingsLoading || promosLoading;
 
   const [spotsPage, setSpotsPage] = useState(1);
   const [bookingsPage, setBookingsPage] = useState(1);
@@ -277,6 +248,8 @@ export default function AdminDashboard() {
       name: spot.name,
       address: spot.address,
       location: spot.location,
+      latitude: spot.latitude,
+      longitude: spot.longitude,
       totalSlots: spot.totalSlots,
       pricePerHour: spot.pricePerHour,
       vehicleTypes: spot.vehicleTypes,
@@ -377,9 +350,9 @@ export default function AdminDashboard() {
       }
 
       const successMessage = editingSpot ? "Parking location updated" : "Parking location created";
-      await queryClient.invalidateQueries({ queryKey: ["parking-spots"] });
-      resetForm();
-      setFormMessage(successMessage);
+await queryClient.invalidateQueries({ queryKey: ["admin-parking-spots"] });
+       resetForm();
+       setFormMessage(successMessage);
     } catch (error) {
       setFormMessage(error instanceof Error ? error.message : "Failed to save parking spot");
     } finally {
@@ -404,8 +377,8 @@ export default function AdminDashboard() {
         throw new Error(json.message ?? "Failed to delete parking spot");
       }
 
-      await queryClient.invalidateQueries({ queryKey: ["parking-spots"] });
-      if (editingSpot?.id === id) {
+await queryClient.invalidateQueries({ queryKey: ["admin-parking-spots"] });
+       if (editingSpot?.id === id) {
         resetForm();
       }
       setFormMessage("Parking location deleted");
@@ -535,7 +508,7 @@ export default function AdminDashboard() {
                         {promo.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{promo.description}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{promo.description ?? ""}</p>
                     <div className="mt-2 text-sm">
                       {promo.discountType === "percentage" ? `${promo.value}% off` : `रू ${promo.value} off`}
                     </div>
@@ -587,6 +560,26 @@ export default function AdminDashboard() {
                       value={formData.address}
                       onChange={(event) => setFormData({ ...formData, address: event.target.value })}
                       placeholder="Full address"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Latitude</label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={formData.latitude ?? ""}
+                      onChange={(event) => setFormData({ ...formData, latitude: event.target.value ? Number(event.target.value) : undefined })}
+                      placeholder="e.g., 27.7172"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Longitude</label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={formData.longitude ?? ""}
+                      onChange={(event) => setFormData({ ...formData, longitude: event.target.value ? Number(event.target.value) : undefined })}
+                      placeholder="e.g., 85.3240"
                     />
                   </div>
                   <div className="space-y-2">
@@ -710,45 +703,49 @@ export default function AdminDashboard() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="p-3 text-left">Name</th>
-                      <th className="p-3 text-left">Location</th>
-                      <th className="p-3 text-left">Address</th>
-                      <th className="p-3 text-center">Slots</th>
-                      <th className="p-3 text-center">Price/hr</th>
-                      <th className="p-3 text-center">Status</th>
-                      <th className="p-3 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedSpots.map((spot) => (
-                      <tr key={spot.id} className="border-b hover:bg-muted/50">
-                        <td className="p-3 font-medium">{spot.name}</td>
-                        <td className="p-3">{spot.location}</td>
-                        <td className="p-3">{spot.address}</td>
-                        <td className="p-3 text-center">
-                          <span className="font-medium text-green-600">{spot.availableSlots}</span>
-                          <span className="text-muted-foreground">/{spot.totalSlots}</span>
-                        </td>
-                        <td className="p-3 text-center">{formatCurrency(spot.pricePerHour)}</td>
-                        <td className="p-3 text-center">
-                          <Badge variant={spot.status === "active" ? "default" : "secondary"}>
-                            {spot.status}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-center">
-                          <div className="flex justify-center gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(spot)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(spot.id)} disabled={deletingId === spot.id}>
-                              {deletingId === spot.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+<thead>
+                     <tr className="border-b">
+                       <th className="p-3 text-left">Name</th>
+                       <th className="p-3 text-left">Location</th>
+                       <th className="p-3 text-left">Address</th>
+                       <th className="p-3 text-center">Coords</th>
+                       <th className="p-3 text-center">Slots</th>
+                       <th className="p-3 text-center">Price/hr</th>
+                       <th className="p-3 text-center">Status</th>
+                       <th className="p-3 text-center">Actions</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {paginatedSpots.map((spot) => (
+                       <tr key={spot.id} className="border-b hover:bg-muted/50">
+                         <td className="p-3 font-medium">{spot.name}</td>
+                         <td className="p-3">{spot.location}</td>
+                         <td className="p-3">{spot.address}</td>
+                         <td className="p-3 text-center text-xs text-muted-foreground">
+                           {spot.latitude && spot.longitude ? `${spot.latitude.toFixed(4)}, ${spot.longitude.toFixed(4)}` : "—"}
+                         </td>
+                         <td className="p-3 text-center">
+                           <span className="font-medium text-green-600">{spot.availableSlots}</span>
+                           <span className="text-muted-foreground">/{spot.totalSlots}</span>
+                         </td>
+                         <td className="p-3 text-center">{formatCurrency(spot.pricePerHour)}</td>
+                         <td className="p-3 text-center">
+                           <Badge variant={spot.status === "active" ? "default" : "secondary"}>
+                             {spot.status}
+                           </Badge>
+                         </td>
+                         <td className="p-3 text-center">
+                           <div className="flex justify-center gap-2">
+                             <Button variant="ghost" size="icon" onClick={() => openEditDialog(spot)}>
+                               <Edit className="h-4 w-4" />
+                             </Button>
+                             <Button variant="ghost" size="icon" onClick={() => handleDelete(spot.id)} disabled={deletingId === spot.id}>
+                               {deletingId === spot.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
+                             </Button>
+                           </div>
+                         </td>
+                       </tr>
+                     ))}
                   </tbody>
                 </table>
                 <div className="mt-4">
@@ -771,11 +768,11 @@ export default function AdminDashboard() {
             </Button>
           </CardHeader>
           <CardContent>
-            {loadingBookings ? (
-              <div className="flex justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin" />
-              </div>
-            ) : (
+{bookingsLoading ? (
+               <div className="flex justify-center p-8">
+                 <Loader2 className="h-8 w-8 animate-spin" />
+               </div>
+             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>

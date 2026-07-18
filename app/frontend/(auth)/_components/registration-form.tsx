@@ -24,6 +24,7 @@ export default function RegistrationForm() {
       email: "",
       phone: "",
       password: "",
+      confirmPassword: "",
       vehicle_number: "",
       vehicle_type: "Bike",
     },
@@ -121,6 +122,18 @@ export default function RegistrationForm() {
               />
               {errors.password && (
                 <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-1">Confirm Password</label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                {...register("confirmPassword")}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-base outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+              />
+              {errors.confirmPassword && (
+                <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>
               )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

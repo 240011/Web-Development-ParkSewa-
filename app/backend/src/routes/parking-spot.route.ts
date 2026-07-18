@@ -15,6 +15,8 @@ const parkingSpotSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   address: z.string().trim().min(1, "Address is required"),
   location: z.string().trim().min(1, "Location is required"),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   totalSlots: z.number().int().nonnegative("Total slots must be a non-negative number"),
   pricePerHour: z.number().nonnegative("Price per hour must be a non-negative number"),
   vehicleTypes: z.array(z.enum(["bike", "car", "truck"])).min(1, "Select at least one vehicle type"),
@@ -27,18 +29,37 @@ function publicParkingSpot(spot: {
   name: string;
   address: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   totalSlots: number;
   availableSlots: number;
   pricePerHour: number;
   vehicleTypes: string[];
   status: string;
   images: string[];
-}) {
-  return {
+  distance?: number;
+}, userLat?: number, userLng?: number) {
+  const result: {
+    id: string;
+    name: string;
+    address: string;
+    location: string;
+    latitude?: number;
+    longitude?: number;
+    distance?: number;
+    totalSlots: number;
+    availableSlots: number;
+    pricePerHour: number;
+    vehicleTypes: string[];
+    status: string;
+    images: string[];
+  } = {
     id: String(spot._id),
     name: spot.name,
     address: spot.address,
     location: spot.location,
+    latitude: spot.latitude,
+    longitude: spot.longitude,
     totalSlots: spot.totalSlots,
     availableSlots: spot.availableSlots,
     pricePerHour: spot.pricePerHour,
@@ -46,6 +67,24 @@ function publicParkingSpot(spot: {
     status: spot.status,
     images: spot.images,
   };
+
+  if (spot.distance !== undefined) {
+    result.distance = spot.distance;
+  } else if (userLat !== undefined && userLng !== undefined && spot.latitude !== undefined && spot.longitude !== undefined) {
+    const R = 6371;
+    const dLat = ((spot.latitude - userLat) * Math.PI) / 180;
+    const dLng = ((spot.longitude - userLng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((userLat * Math.PI) / 180) *
+        Math.cos((spot.latitude * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    result.distance = Math.round((R * c) * 10) / 10;
+  }
+
+  return result;
 }
 
 function getToken(request: NextRequest) {
@@ -86,10 +125,25 @@ export async function getParkingSpotsRoute(request: NextRequest) {
 
   try {
     const status = request.nextUrl.searchParams.get("status") as SpotStatus | null;
-    const spots = await parkingSpotRepository.list(status ?? undefined);
+    const lat = request.nextUrl.searchParams.get("lat");
+    const lng = request.nextUrl.searchParams.get("lng");
+    const userLat = lat ? parseFloat(lat) : undefined;
+    const userLng = lng ? parseFloat(lng) : undefined;
+
+    let spots = await parkingSpotRepository.list(status ?? undefined);
+
+    if (userLat !== undefined && userLng !== undefined) {
+      spots = spots
+        .map((spot) => ({
+          ...(spot.toObject?.() ?? spot),
+          distance: publicParkingSpot(spot, userLat, userLng).distance,
+        }))
+        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    }
+
     return NextResponse.json(
       ApiResponseHelper.success(
-        spots.map(publicParkingSpot),
+        spots.map(spot => publicParkingSpot(spot, userLat, userLng)),
         "Parking spots retrieved successfully",
         200
       ),

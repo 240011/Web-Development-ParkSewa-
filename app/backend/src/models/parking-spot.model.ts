@@ -7,6 +7,8 @@ export interface IParkingSpot extends Document {
   name: string;
   address: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   totalSlots: number;
   availableSlots: number;
   pricePerHour: number;
@@ -22,6 +24,8 @@ const ParkingSpotSchema = new Schema<IParkingSpot>(
     name: { type: String, required: true, trim: true },
     address: { type: String, required: true, trim: true },
     location: { type: String, required: true, trim: true },
+    latitude: { type: Number, min: -90, max: 90 },
+    longitude: { type: Number, min: -180, max: 180 },
     totalSlots: { type: Number, required: true, min: 0 },
     availableSlots: { type: Number, required: true, min: 0 },
     pricePerHour: { type: Number, required: true, min: 0 },
