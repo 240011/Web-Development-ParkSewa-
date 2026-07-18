@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-export type VehicleType = "bike" | "car" | "truck";
+export type VehicleType = "bike" | "car" | "truck" | "covered" | "indoor" | "ev";
 export type SpotStatus = "active" | "inactive";
 
 export interface IParkingSpot extends Document {
@@ -12,6 +12,10 @@ export interface IParkingSpot extends Document {
   totalSlots: number;
   availableSlots: number;
   pricePerHour: number;
+  bikePrice?: number;
+  carPrice?: number;
+  truckPrice?: number;
+  evPrice?: number;
   vehicleTypes: VehicleType[];
   status: SpotStatus;
   images: string[];
@@ -29,7 +33,11 @@ const ParkingSpotSchema = new Schema<IParkingSpot>(
     totalSlots: { type: Number, required: true, min: 0 },
     availableSlots: { type: Number, required: true, min: 0 },
     pricePerHour: { type: Number, required: true, min: 0 },
-    vehicleTypes: { type: [String], enum: ["bike", "car", "truck"], required: true },
+    bikePrice: { type: Number, min: 0 },
+    carPrice: { type: Number, min: 0 },
+    truckPrice: { type: Number, min: 0 },
+    evPrice: { type: Number, min: 0 },
+    vehicleTypes: { type: [String], required: true },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
     images: { type: [String], default: [] },
   },

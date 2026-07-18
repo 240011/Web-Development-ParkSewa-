@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Search, CarFront, LocateFixed } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, vehicleTypeLabel } from "@/lib/format";
 import Sidebar from "../components/app-sidebar";
 
 interface Spot {
@@ -38,10 +39,12 @@ const fetchSpots = async (lat?: number, lng?: number): Promise<Spot[]> => {
   return json.data ?? [];
 };
 
-export default function SpotsPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+function SpotsPageInner() {
+  const searchParams = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<string>("All");
 
   const { data: spots = [], isLoading } = useQuery<Spot[]>({
     queryKey: ["parking-spots", userLocation],
@@ -68,11 +71,22 @@ export default function SpotsPage() {
     );
   };
 
-  const filteredSpots = spots.filter(spot =>
-    spot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    spot.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    spot.location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const matchesFilter = (spot: Spot, filter: string): boolean => {
+    if (filter === "All") return true;
+    if (filter === "Open") return spot.status === "active" && spot.availableSlots > 0;
+    if (filter === "Covered") return spot.vehicleTypes.some((t) => t.includes("covered") || t.includes("indoor"));
+    if (filter === "EV Charging") return spot.vehicleTypes.some((t) => t.includes("ev"));
+    return true;
+  };
+
+  const filteredSpots = spots.filter((spot) => {
+    const matchesSearch =
+      spot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      spot.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      spot.location.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilterTag = matchesFilter(spot, selectedFilter);
+    return matchesSearch && matchesFilterTag;
+  });
 
   return (
     <div className="flex min-h-screen">
@@ -106,6 +120,20 @@ export default function SpotsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {["All", "Open", "Covered", "EV Charging"].map((filter) => (
+            <Button
+              key={filter}
+              variant={selectedFilter === filter ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedFilter(filter)}
+              className="capitalize"
+            >
+              {filter}
+            </Button>
+          ))}
         </div>
 
         {isLoading ? (
@@ -161,8 +189,8 @@ export default function SpotsPage() {
                 </div>
                 <div className="flex flex-wrap gap-1 mb-3">
                   {spot.vehicleTypes.map((type) => (
-                    <Badge key={type} variant="outline" className="text-xs capitalize">
-                      {type}
+                    <Badge key={type} variant="outline" className="text-xs">
+                      {vehicleTypeLabel(type)}
                     </Badge>
                   ))}
                 </div>
@@ -185,5 +213,20 @@ export default function SpotsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SpotsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <div className="flex-1 p-8 text-muted-foreground">Loading…</div>
+        </div>
+      }
+    >
+      <SpotsPageInner />
+    </Suspense>
   );
 }

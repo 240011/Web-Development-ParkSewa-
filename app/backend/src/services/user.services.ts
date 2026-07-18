@@ -87,8 +87,14 @@ export class UserService {
       return;
     }
     const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' });
-    const resetLink = `${CLIENT_URL}/frontend/reset_password?token=${token}`;
-    const html = `<p>Click <a href="${resetLink}">here</a> to reset your password. This link will expire in 1 hour.</p>`;
+    const deepLink = `parkease://reset-password?token=${encodeURIComponent(token)}`;
+    const webLink = `${CLIENT_URL}/frontend/reset_password?token=${encodeURIComponent(token)}`;
+    const html = `
+      <p>You requested a password reset.</p>
+      <p>Open the Parkease app to reset your password: <a href="${deepLink}">Reset in Parkease app</a></p>
+      <p>Or use this link in your browser: <a href="${webLink}">${webLink}</a></p>
+      <p>This link will expire in 1 hour.</p>
+    `;
     try {
       await sendEmail(user.email, 'Password Reset', html);
     } catch (emailError: unknown) {

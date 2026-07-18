@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { DEFAULT_VEHICLE_PRICES } from "@/lib/constants";
 import {
   Calendar,
   Car,
@@ -24,9 +25,12 @@ type BookingStatusFilter = "all" | BookingStatus;
 type BookingEntity = {
   title: string;
   location: string;
+  image?: string;
   date: string;
   time: string;
   amount: string;
+  vehicleType?: string;
+  vehicleRate?: string;
   status: BookingStatus;
 };
 
@@ -64,14 +68,26 @@ export default function BookingsPage() {
   const [statusFilter, setStatusFilter] = useState<BookingStatusFilter>("all");
 
   const entities = useMemo<BookingEntity[]>(() => {
-    return (bookings ?? []).map((booking) => ({
-      title: `Parking Session #${booking.id.toString().slice(-6)}`,
-      location: booking.spot?.name ?? "Unknown parking spot",
-      date: formatDate(booking.startTime).split(",")[0],
-      time: getBookingTime(booking.startTime),
-      amount: formatCurrency(booking.totalAmount),
-      status: booking.status,
-    }));
+    return (bookings ?? []).map((booking) => {
+      const rate = booking.vehicleType === "Bike"
+        ? booking.spot?.bikePrice ?? DEFAULT_VEHICLE_PRICES.bike
+        : booking.vehicleType === "Truck"
+          ? booking.spot?.truckPrice ?? DEFAULT_VEHICLE_PRICES.truck
+          : booking.vehicleType === "EV" || booking.vehicleType === "Electric"
+            ? booking.spot?.evPrice ?? DEFAULT_VEHICLE_PRICES.ev
+            : booking.spot?.carPrice ?? booking.spot?.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car;
+      return {
+        title: `Parking Session #${booking.id.toString().slice(-6)}`,
+        location: booking.spot?.name ?? "Unknown parking spot",
+        image: booking.spot?.images?.[0],
+        date: formatDate(booking.startTime).split(",")[0],
+        time: getBookingTime(booking.startTime),
+        amount: formatCurrency(booking.totalAmount),
+        vehicleType: booking.vehicleType,
+        vehicleRate: formatCurrency(rate) + "/hr",
+        status: booking.status,
+      };
+    });
   }, [bookings]);
 
   const filteredBookings = entities.filter((booking) => {
@@ -207,6 +223,19 @@ export default function BookingsPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {filteredBookings.map((booking) => (
                   <Card key={booking.title} className="overflow-hidden">
+                    <div className="relative h-40 w-full bg-muted">
+                      {booking.image ? (
+                        <img
+                          src={booking.image}
+                          alt={booking.location}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                          <Car className="h-10 w-10 opacity-60" />
+                        </div>
+                      )}
+                    </div>
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-4">
                         <div className="space-y-1">
@@ -238,17 +267,20 @@ export default function BookingsPage() {
                       </div>
                       <div className="rounded-lg border bg-muted/40 p-3">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                          <Car className="h-3.5 w-3.5" />
+                          Vehicle
+                        </div>
+                        <p className="font-semibold capitalize">{booking.vehicleType ?? "N/A"}</p>
+                        {booking.vehicleRate && (
+                          <p className="text-xs text-muted-foreground">{booking.vehicleRate}</p>
+                        )}
+                      </div>
+                      <div className="rounded-lg border bg-muted/40 p-3">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                           <CreditCard className="h-3.5 w-3.5" />
                           Amount
                         </div>
                         <p className="font-semibold">{booking.amount}</p>
-                      </div>
-                      <div className="rounded-lg border bg-muted/40 p-3">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                          <Car className="h-3.5 w-3.5" />
-                          Status
-                        </div>
-                        <p className="font-semibold capitalize">{booking.status}</p>
                       </div>
                     </CardContent>
                   </Card>

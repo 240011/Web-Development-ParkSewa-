@@ -31,5 +31,17 @@ export const ENDPOINTS = {
   notifications: {
     list: "/api/v1/notifications",
     markRead: "/api/v1/notifications/read",
+    detail: (id: string) => `/api/v1/notifications/${id}`,
+  },
+  adminNotifications: {
+    list: "/api/v1/admin/notifications",
+    send: "/api/v1/admin/notifications",
+    detail: (id: string) => `/api/v1/admin/notifications/${id}`,
+  },
+  chat: {
+    send: "/api/v1/chat",
+  },
+  users: {
+    adminList: "/api/v1/admin/users",
   },
 } as const;

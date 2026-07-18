@@ -16,3 +16,8 @@ export function formatDate(date: string | Date): string {
     minute: "2-digit",
   });
 }
+
+export function vehicleTypeLabel(type: string): string {
+  if (type === "ev" || type === "electric") return "EV Charging";
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}

@@ -5,6 +5,10 @@ export class NotificationRepository {
     return Notification.find({ user: userId }).sort({ createdAt: -1 });
   }
 
+  async listAll() {
+    return Notification.find({}).sort({ createdAt: -1 }).populate("user", "full_name email role");
+  }
+
   async create(data: {
     userId: string;
     title: string;
@@ -21,8 +25,29 @@ export class NotificationRepository {
     });
   }
 
+  async createForUsers(userIds: string[], data: {
+    title: string;
+    message: string;
+    type: "booking" | "payment" | "system" | "promo";
+    relatedId?: string;
+  }) {
+    return Notification.insertMany(
+      userIds.map((userId) => ({
+        user: userId,
+        title: data.title,
+        message: data.message,
+        type: data.type,
+        relatedId: data.relatedId,
+      }))
+    );
+  }
+
   async markAsRead(id: string) {
     return Notification.findByIdAndUpdate(id, { isRead: true }, { returnDocument: "after" });
+  }
+
+  async markAsUnread(id: string) {
+    return Notification.findByIdAndUpdate(id, { isRead: false }, { returnDocument: "after" });
   }
 
   async markAllAsRead(userId: string) {
@@ -31,5 +56,9 @@ export class NotificationRepository {
 
   async delete(id: string) {
     return Notification.findByIdAndDelete(id);
+  }
+
+  async findById(id: string) {
+    return Notification.findById(id).exec();
   }
 }

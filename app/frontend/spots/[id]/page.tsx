@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { MapPin, CarFront, Loader2, Calendar, Tag, AlertCircle, ArrowLeft, CheckCircle, LocateFixed } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, vehicleTypeLabel } from "@/lib/format";
+import { DEFAULT_VEHICLE_PRICES } from "@/lib/constants";
 
 interface ParkingSpot {
   id: string;
@@ -20,6 +21,10 @@ interface ParkingSpot {
   longitude?: number;
   distance?: number;
   pricePerHour: number;
+  bikePrice?: number;
+  carPrice?: number;
+  truckPrice?: number;
+  evPrice?: number;
   availableSlots: number;
   totalSlots: number;
   status: string;
@@ -49,6 +54,8 @@ export default function SpotDetailPage() {
   const [startTime, setStartTime] = useState(getInitialStartTime);
   const [endTime, setEndTime] = useState("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [userVehicleType, setUserVehicleType] = useState<string>("");
+  const [overrideVehicleType, setOverrideVehicleType] = useState<string>("");
 
   const [promoCode, setPromoCode] = useState("");
   const [promoResult, setPromoResult] = useState<{ valid: boolean; discount?: number; finalAmount?: number; error?: string } | null>(null);
@@ -63,6 +70,27 @@ export default function SpotDetailPage() {
     queryFn: () => fetchParkingSpot(spotId),
     enabled: !!spotId,
   });
+
+  useQuery({
+    queryKey: ["current-user"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/auth/current-user", { credentials: "include" });
+      if (!res.ok) return null;
+      const json = await res.json() as { data?: { vehicle_type?: string } };
+      return json.data?.vehicle_type ?? null;
+    },
+    onSuccess: (vehicleType) => {
+      if (vehicleType) {
+        setUserVehicleType(vehicleType.toLowerCase());
+      }
+    },
+  });
+
+  const normalizedTypes = useMemo(() => (spot?.vehicleTypes || []).map((t) => t.toLowerCase()), [spot?.vehicleTypes]);
+
+  const effectiveVehicleType = overrideVehicleType ||
+    (userVehicleType && normalizedTypes.includes(userVehicleType) ? userVehicleType : normalizedTypes[0]) ||
+    "";
 
   const distance = useMemo(() => {
     if (!spot?.latitude || !spot?.longitude || !userLocation) return undefined;
@@ -86,23 +114,33 @@ export default function SpotDetailPage() {
     }
   }, [toast]);
 
+  const showToast = (title: string, desc: string, type = "default") => {
+    setToast({ title, desc, type });
+  };
+
+  const getVehiclePrice = () => {
+    if (!spot) return spot?.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car;
+    const type = effectiveVehicleType || "car";
+    if (type === "bike") return spot.bikePrice ?? DEFAULT_VEHICLE_PRICES.bike;
+    if (type === "truck") return spot.truckPrice ?? DEFAULT_VEHICLE_PRICES.truck;
+    if (type === "car") return spot.carPrice ?? DEFAULT_VEHICLE_PRICES.car;
+    if (type === "ev") return spot.evPrice ?? DEFAULT_VEHICLE_PRICES.ev;
+    return spot.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car;
+  };
+
   const estimatedAmount = useMemo(() => {
-    if (!startTime || !endTime || !spot?.pricePerHour) return 0;
+    if (!startTime || !endTime) return 0;
     const start = new Date(startTime).getTime();
     const end = new Date(endTime).getTime();
     if (end <= start) return 0;
     const hours = Math.max(0.25, Math.ceil((end - start) / (1000 * 60 * 60)));
-    return Math.round(parseFloat((hours * (spot?.pricePerHour ?? 0)).toFixed(2)));
-  }, [startTime, endTime, spot]);
+    return Math.round(parseFloat((hours * getVehiclePrice()).toFixed(2)));
+  }, [startTime, endTime, spot, effectiveVehicleType]);
 
   const finalPayableAmount = useMemo(() => {
     if (!promoResult?.valid) return estimatedAmount;
     return promoResult.finalAmount ?? estimatedAmount - (promoResult.discount ?? 0);
   }, [estimatedAmount, promoResult]);
-
-  const showToast = (title: string, desc: string, type = "default") => {
-    setToast({ title, desc, type });
-  };
 
   async function handleValidatePromo(e: FormEvent) {
     e.preventDefault();
@@ -175,6 +213,7 @@ export default function SpotDetailPage() {
           body: JSON.stringify({
             spotId: spot.id,
             vehicleNumber,
+            vehicleType: effectiveVehicleType ? effectiveVehicleType.charAt(0).toUpperCase() + effectiveVehicleType.slice(1) : undefined,
             startTime,
             endTime,
             totalAmount: finalPayableAmount,
@@ -308,7 +347,10 @@ export default function SpotDetailPage() {
                   </div>
                   <div className="bg-muted/50 p-3 rounded-md text-center">
                     <div className="text-xs text-muted-foreground mb-1">Price / hr</div>
-                    <div className="font-semibold">{formatCurrency(spot.pricePerHour ?? 0)}</div>
+                    <div className="font-semibold">{formatCurrency(getVehiclePrice())}</div>
+                    {userVehicleType && (
+                      <div className="text-[10px] text-muted-foreground capitalize mt-0.5">{userVehicleType} rate</div>
+                    )}
                   </div>
                   <div className="bg-muted/50 p-3 rounded-md text-center">
                     <div className="text-xs text-muted-foreground mb-1">Type</div>
@@ -317,7 +359,7 @@ export default function SpotDetailPage() {
                 </div>
                 <div className="flex gap-2 mt-4">
                   {(spot.vehicleTypes || []).map((type) => (
-                    <Badge key={type} variant="outline" className="text-xs capitalize bg-background">{type}</Badge>
+                    <Badge key={type} variant="outline" className="text-xs bg-background">{vehicleTypeLabel(type)}</Badge>
                   ))}
                 </div>
               </CardContent>
@@ -338,6 +380,34 @@ export default function SpotDetailPage() {
                     onChange={(e) => setVehicleNumber(e.target.value)}
                   />
                 </div>
+
+                {normalizedTypes.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Vehicle Type</label>
+                    <div className="flex flex-wrap gap-2">
+                      {normalizedTypes.map((type, idx) => {
+                        const originalType = spot!.vehicleTypes![idx];
+                        const isSelected = effectiveVehicleType === type;
+                        const price = type === "bike" ? spot!.bikePrice ?? DEFAULT_VEHICLE_PRICES.bike : type === "truck" ? spot!.truckPrice ?? DEFAULT_VEHICLE_PRICES.truck : type === "car" ? spot!.carPrice ?? DEFAULT_VEHICLE_PRICES.car : type === "ev" ? spot!.evPrice ?? DEFAULT_VEHICLE_PRICES.ev : spot!.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car;
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setOverrideVehicleType(type)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors capitalize ${
+                              isSelected
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background hover:bg-accent border-input"
+                            }`}
+                          >
+                             {vehicleTypeLabel(originalType)}
+                            {price !== undefined && <span className="opacity-75">{formatCurrency(price)}/hr</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium mb-1.5">Start Time</label>

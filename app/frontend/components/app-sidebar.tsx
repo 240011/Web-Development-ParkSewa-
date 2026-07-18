@@ -13,6 +13,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Tag,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const menuItems = [
   { href: "/frontend/bookings", label: "My Bookings", icon: Calendar },
   { href: "/frontend/promos", label: "Promos", icon: Tag },
   { href: "/frontend/notifications", label: "Notifications", icon: Bell },
+  { href: "/frontend/chatbot", label: "Assistant", icon: Bot },
 ];
 
 const bottomItems = [
@@ -78,6 +80,7 @@ export default function Sidebar() {
     normalizedPathname !== "/frontend/bookings" &&
     normalizedPathname !== "/frontend/promos" &&
     normalizedPathname !== "/frontend/notifications" &&
+    normalizedPathname !== "/frontend/chatbot" &&
     normalizedPathname !== "/frontend/profile"
   ) {
     return null;

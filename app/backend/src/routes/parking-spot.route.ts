@@ -8,6 +8,7 @@ import {
 } from "../configs/auth";
 import { ParkingSpotRepository } from "../repositories/parking-spot.repository";
 import type { SpotStatus } from "../models/parking-spot.model";
+import { DEFAULT_VEHICLE_PRICES } from "../constants/constant";
 
 const parkingSpotRepository = new ParkingSpotRepository();
 
@@ -19,7 +20,11 @@ const parkingSpotSchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
   totalSlots: z.number().int().nonnegative("Total slots must be a non-negative number"),
   pricePerHour: z.number().nonnegative("Price per hour must be a non-negative number"),
-  vehicleTypes: z.array(z.enum(["bike", "car", "truck"])).min(1, "Select at least one vehicle type"),
+  bikePrice: z.number().nonnegative("Bike price must be a non-negative number").optional(),
+  carPrice: z.number().nonnegative("Car price must be a non-negative number").optional(),
+  truckPrice: z.number().nonnegative("Truck price must be a non-negative number").optional(),
+  evPrice: z.number().nonnegative("EV charging price must be a non-negative number").optional(),
+  vehicleTypes: z.array(z.enum(["bike", "car", "truck", "covered", "indoor", "ev"])).min(1, "Select at least one vehicle type"),
   status: z.enum(["active", "inactive"]).optional(),
   images: z.array(z.string().trim().min(1, "Image URL is required")).optional(),
 });
@@ -34,6 +39,10 @@ function publicParkingSpot(spot: {
   totalSlots: number;
   availableSlots: number;
   pricePerHour: number;
+  bikePrice?: number;
+  carPrice?: number;
+  truckPrice?: number;
+  evPrice?: number;
   vehicleTypes: string[];
   status: string;
   images: string[];
@@ -50,6 +59,10 @@ function publicParkingSpot(spot: {
     totalSlots: number;
     availableSlots: number;
     pricePerHour: number;
+    bikePrice?: number;
+    carPrice?: number;
+    truckPrice?: number;
+    evPrice?: number;
     vehicleTypes: string[];
     status: string;
     images: string[];
@@ -62,8 +75,12 @@ function publicParkingSpot(spot: {
     longitude: spot.longitude,
     totalSlots: spot.totalSlots,
     availableSlots: spot.availableSlots,
-    pricePerHour: spot.pricePerHour,
-    vehicleTypes: spot.vehicleTypes,
+    pricePerHour: spot.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car,
+    bikePrice: spot.bikePrice ?? DEFAULT_VEHICLE_PRICES.bike,
+    carPrice: spot.carPrice ?? DEFAULT_VEHICLE_PRICES.car,
+    truckPrice: spot.truckPrice ?? DEFAULT_VEHICLE_PRICES.truck,
+    evPrice: spot.evPrice ?? DEFAULT_VEHICLE_PRICES.ev,
+    vehicleTypes: Array.from(new Set((spot.vehicleTypes || []).map((t) => (t === "electric" ? "ev" : t)))),
     status: spot.status,
     images: spot.images,
   };
@@ -125,12 +142,16 @@ export async function getParkingSpotsRoute(request: NextRequest) {
 
   try {
     const status = request.nextUrl.searchParams.get("status") as SpotStatus | null;
+    const vehicleType = request.nextUrl.searchParams.get("vehicleType");
     const lat = request.nextUrl.searchParams.get("lat");
     const lng = request.nextUrl.searchParams.get("lng");
     const userLat = lat ? parseFloat(lat) : undefined;
     const userLng = lng ? parseFloat(lng) : undefined;
 
-    let spots = await parkingSpotRepository.list(status ?? undefined);
+    let spots = await parkingSpotRepository.list({
+      status: status ?? undefined,
+      vehicleType: vehicleType ?? undefined,
+    });
 
     if (userLat !== undefined && userLng !== undefined) {
       spots = spots

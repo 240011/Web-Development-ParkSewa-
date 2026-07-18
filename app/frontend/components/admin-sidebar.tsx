@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  BarChart3,
+  Bell,
   CalendarCheck,
   CarFront,
   LayoutDashboard,
   LogOut,
-  MapPin,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
@@ -23,10 +22,9 @@ import { useAuth } from "@/hooks/use-auth";
 
 const menuItems = [
   { href: "/frontend/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/frontend/admin/spots", label: "Parking Spots", icon: MapPin },
   { href: "/frontend/admin/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/frontend/admin/promos", label: "Promos", icon: Tag },
-  { href: "/frontend/admin/reports", label: "Reports", icon: BarChart3 },
+  { href: "/frontend/admin/notifications", label: "Notifications", icon: Bell },
   { href: "/frontend/admin/users", label: "Users", icon: Users },
   { href: "/frontend/admin/settings", label: "Settings", icon: Settings },
 ];
