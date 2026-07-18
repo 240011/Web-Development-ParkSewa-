@@ -27,7 +27,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, vehicleTypeLabel } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
 import { ENDPOINTS } from "@/lib/endpoints";
 import AdminSidebar from "@/components/admin-sidebar";
@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils";
 
 type BookingStatus = "active" | "pending" | "completed" | "cancelled";
 type SpotStatus = "active" | "inactive";
-type VehicleType = "bike" | "car" | "truck";
+type VehicleType = "bike" | "car" | "truck" | "covered" | "indoor" | "ev";
 
 type ParkingSpot = {
   id: string;
@@ -65,7 +65,7 @@ type Promo = {
 type Booking = {
   id: string;
   user?: { name: string };
-  spot?: { name: string };
+  spot?: { name: string; images?: string[] };
   vehicleNumber: string;
   startTime: string;
   endTime?: string;
@@ -81,6 +81,10 @@ type SpotFormData = {
   longitude?: number;
   totalSlots: number;
   pricePerHour: number;
+  bikePrice?: number;
+  carPrice?: number;
+  truckPrice?: number;
+  evPrice?: number;
   vehicleTypes: VehicleType[];
   status: SpotStatus;
   images: string[];
@@ -94,6 +98,10 @@ const defaultSpotForm: SpotFormData = {
   longitude: undefined,
   totalSlots: 10,
   pricePerHour: 50,
+  bikePrice: 40,
+  carPrice: 60,
+  truckPrice: 80,
+  evPrice: 100,
   vehicleTypes: ["car"],
   status: "active",
   images: [],
@@ -156,6 +164,7 @@ export default function AdminDashboard() {
   const [formMessage, setFormMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [spotsFilter, setSpotsFilter] = useState<string>("All");
 
   const { data: spots = [], isLoading: spotsLoading, refetch: refetchSpots } = useQuery<ParkingSpot[]>({
     queryKey: ["admin-parking-spots"],
@@ -193,8 +202,15 @@ const { data: bookings = [], isLoading: bookingsLoading } = useQuery<Booking[]>(
   const [bookingsPage, setBookingsPage] = useState(1);
   const LIMIT = 10;
 
-  const spotsTotalPages = Math.ceil(spots.length / LIMIT) || 1;
-  const paginatedSpots = spots.slice((spotsPage - 1) * LIMIT, spotsPage * LIMIT);
+  const filteredByTag = spots.filter((spot) => {
+    if (spotsFilter === "All") return true;
+    if (spotsFilter === "Open") return spot.status === "active" && spot.availableSlots > 0;
+    if (spotsFilter === "Covered") return spot.vehicleTypes.some((t) => t.includes("covered") || t.includes("indoor"));
+    if (spotsFilter === "EV Charging") return spot.vehicleTypes.some((t) => t.includes("ev"));
+    return true;
+  });
+  const spotsTotalPages = Math.ceil(filteredByTag.length / LIMIT) || 1;
+  const paginatedSpots = filteredByTag.slice((spotsPage - 1) * LIMIT, spotsPage * LIMIT);
 
   const bookingsTotalPages = Math.ceil(bookings.length / LIMIT) || 1;
   const paginatedBookings = bookings.slice((bookingsPage - 1) * LIMIT, bookingsPage * LIMIT);
@@ -590,14 +606,50 @@ await queryClient.invalidateQueries({ queryKey: ["admin-parking-spots"] });
                       onChange={(event) => setFormData({ ...formData, totalSlots: Number(event.target.value) || 0 })}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Price per Hour</label>
-                    <Input
-                      type="number"
-                      value={formData.pricePerHour}
-                      onChange={(event) => setFormData({ ...formData, pricePerHour: Number(event.target.value) || 0 })}
-                    />
-                  </div>
+                   <div className="space-y-2">
+                     <label className="text-sm font-medium">Price per Hour</label>
+                     <Input
+                       type="number"
+                       value={formData.pricePerHour}
+                       onChange={(event) => setFormData({ ...formData, pricePerHour: Number(event.target.value) || 0 })}
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-sm font-medium">Bike Price / hr</label>
+                     <Input
+                       type="number"
+                       value={formData.bikePrice ?? ""}
+                       onChange={(event) => setFormData({ ...formData, bikePrice: event.target.value ? Number(event.target.value) : undefined })}
+                       placeholder="Defaults to base price"
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-sm font-medium">Car Price / hr</label>
+                     <Input
+                       type="number"
+                       value={formData.carPrice ?? ""}
+                       onChange={(event) => setFormData({ ...formData, carPrice: event.target.value ? Number(event.target.value) : undefined })}
+                       placeholder="Defaults to base price"
+                     />
+                   </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Truck Price / hr</label>
+                      <Input
+                        type="number"
+                        value={formData.truckPrice ?? ""}
+                        onChange={(event) => setFormData({ ...formData, truckPrice: event.target.value ? Number(event.target.value) : undefined })}
+                        placeholder="Defaults to base price"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">EV Charging Price / hr</label>
+                      <Input
+                        type="number"
+                        value={formData.evPrice ?? ""}
+                        onChange={(event) => setFormData({ ...formData, evPrice: event.target.value ? Number(event.target.value) : undefined })}
+                        placeholder="Defaults to base price"
+                      />
+                    </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Status</label>
                     <div className="flex gap-2">
@@ -621,8 +673,8 @@ await queryClient.invalidateQueries({ queryKey: ["admin-parking-spots"] });
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Vehicle Types</label>
-                    <div className="flex flex-wrap gap-2">
-                      {(["bike", "car", "truck"] as VehicleType[]).map((type) => (
+                     <div className="flex flex-wrap gap-2">
+                       {(["bike", "car", "truck", "covered", "indoor", "ev"] as VehicleType[]).map((type) => (
                         <Button
                           key={type}
                           type="button"
@@ -630,7 +682,7 @@ await queryClient.invalidateQueries({ queryKey: ["admin-parking-spots"] });
                           size="sm"
                           onClick={() => toggleVehicleType(type)}
                         >
-                          {type}
+                          {vehicleTypeLabel(type)}
                         </Button>
                       ))}
                     </div>
@@ -689,9 +741,24 @@ await queryClient.invalidateQueries({ queryKey: ["admin-parking-spots"] });
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Parking Locations</CardTitle>
-            <CardDescription>Manage all parking spots</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Parking Locations</CardTitle>
+              <CardDescription>Manage all parking spots</CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {["All", "Open", "Covered", "EV Charging"].map((filter) => (
+                <Button
+                  key={filter}
+                  variant={spotsFilter === filter ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => { setSpotsFilter(filter); setSpotsPage(1); }}
+                  className="capitalize"
+                >
+                  {filter}
+                </Button>
+              ))}
+            </div>
           </CardHeader>
           <CardContent>
             {false ? (
@@ -703,34 +770,40 @@ await queryClient.invalidateQueries({ queryKey: ["admin-parking-spots"] });
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-<thead>
-                     <tr className="border-b">
-                       <th className="p-3 text-left">Name</th>
-                       <th className="p-3 text-left">Location</th>
-                       <th className="p-3 text-left">Address</th>
-                       <th className="p-3 text-center">Coords</th>
-                       <th className="p-3 text-center">Slots</th>
-                       <th className="p-3 text-center">Price/hr</th>
-                       <th className="p-3 text-center">Status</th>
-                       <th className="p-3 text-center">Actions</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     {paginatedSpots.map((spot) => (
-                       <tr key={spot.id} className="border-b hover:bg-muted/50">
-                         <td className="p-3 font-medium">{spot.name}</td>
-                         <td className="p-3">{spot.location}</td>
-                         <td className="p-3">{spot.address}</td>
-                         <td className="p-3 text-center text-xs text-muted-foreground">
-                           {spot.latitude && spot.longitude ? `${spot.latitude.toFixed(4)}, ${spot.longitude.toFixed(4)}` : "—"}
-                         </td>
-                         <td className="p-3 text-center">
-                           <span className="font-medium text-green-600">{spot.availableSlots}</span>
-                           <span className="text-muted-foreground">/{spot.totalSlots}</span>
-                         </td>
-                         <td className="p-3 text-center">{formatCurrency(spot.pricePerHour)}</td>
-                         <td className="p-3 text-center">
-                           <Badge variant={spot.status === "active" ? "default" : "secondary"}>
+                    <thead>
+                         <tr className="border-b">
+                           <th className="p-3 text-left">Name</th>
+                           <th className="p-3 text-left">Location</th>
+                           <th className="p-3 text-left">Address</th>
+                           <th className="p-3 text-center">Coords</th>
+                           <th className="p-3 text-center">Slots</th>
+                           <th className="p-3 text-center">Bike</th>
+                            <th className="p-3 text-center">Car</th>
+                            <th className="p-3 text-center">Truck</th>
+                            <th className="p-3 text-center">EV</th>
+                            <th className="p-3 text-center">Status</th>
+                           <th className="p-3 text-center">Actions</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                         {paginatedSpots.map((spot) => (
+                           <tr key={spot.id} className="border-b hover:bg-muted/50">
+                             <td className="p-3 font-medium">{spot.name}</td>
+                             <td className="p-3">{spot.location}</td>
+                             <td className="p-3">{spot.address}</td>
+                             <td className="p-3 text-center text-xs text-muted-foreground">
+                               {spot.latitude && spot.longitude ? `${spot.latitude.toFixed(4)}, ${spot.longitude.toFixed(4)}` : "—"}
+                             </td>
+                             <td className="p-3 text-center">
+                               <span className="font-medium text-green-600">{spot.availableSlots}</span>
+                               <span className="text-muted-foreground">/{spot.totalSlots}</span>
+                             </td>
+                             <td className="p-3 text-center">{formatCurrency(spot.bikePrice ?? spot.pricePerHour)}</td>
+                             <td className="p-3 text-center">{formatCurrency(spot.carPrice ?? spot.pricePerHour)}</td>
+                              <td className="p-3 text-center">{formatCurrency(spot.truckPrice ?? spot.pricePerHour)}</td>
+                              <td className="p-3 text-center">{formatCurrency(spot.evPrice ?? spot.pricePerHour)}</td>
+                              <td className="p-3 text-center">
+                            <Badge variant={spot.status === "active" ? "default" : "secondary"}>
                              {spot.status}
                            </Badge>
                          </td>
@@ -775,34 +848,42 @@ await queryClient.invalidateQueries({ queryKey: ["admin-parking-spots"] });
              ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="p-3 text-left">User</th>
-                      <th className="p-3 text-left">Spot</th>
-                      <th className="p-3 text-left">Vehicle</th>
-                      <th className="p-3 text-left">Start Time</th>
-                      <th className="p-3 text-left">End Time</th>
-                      <th className="p-3 text-center">Amount</th>
-                      <th className="p-3 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedBookings.map((booking) => (
-                      <tr key={booking.id} className="border-b hover:bg-muted/50">
-                        <td className="p-3">{booking.user?.name || "-"}</td>
-                        <td className="p-3">{booking.spot?.name || "-"}</td>
-                        <td className="p-3">{booking.vehicleNumber}</td>
-                        <td className="p-3">{formatDate(booking.startTime)}</td>
-                        <td className="p-3">{booking.endTime ? formatDate(booking.endTime) : "-"}</td>
-                        <td className="p-3 text-center">{formatCurrency(booking.totalAmount)}</td>
-                        <td className="p-3 text-center">
-                          <Badge className={cn("capitalize", statusClasses[booking.status])}>
-                            {booking.status}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+                   <thead>
+                     <tr className="border-b">
+                       <th className="p-3 text-left">User</th>
+                       <th className="p-3 text-left">Spot</th>
+                       <th className="p-3 text-left">Image</th>
+                       <th className="p-3 text-left">Vehicle</th>
+                       <th className="p-3 text-left">Start Time</th>
+                       <th className="p-3 text-left">End Time</th>
+                       <th className="p-3 text-center">Amount</th>
+                       <th className="p-3 text-center">Status</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {paginatedBookings.map((booking) => (
+                       <tr key={booking.id} className="border-b hover:bg-muted/50">
+                         <td className="p-3">{booking.user?.name || "-"}</td>
+                         <td className="p-3">{booking.spot?.name || "-"}</td>
+                         <td className="p-3">
+                           {booking.spot?.images?.[0] ? (
+                             <img src={booking.spot.images[0]} alt={booking.spot?.name || "Parking spot"} className="h-10 w-10 rounded object-cover" />
+                           ) : (
+                             <span className="text-muted-foreground">-</span>
+                           )}
+                         </td>
+                         <td className="p-3">{booking.vehicleNumber}</td>
+                         <td className="p-3">{formatDate(booking.startTime)}</td>
+                         <td className="p-3">{booking.endTime ? formatDate(booking.endTime) : "-"}</td>
+                         <td className="p-3 text-center">{formatCurrency(booking.totalAmount)}</td>
+                         <td className="p-3 text-center">
+                           <Badge className={cn("capitalize", statusClasses[booking.status])}>
+                             {booking.status}
+                           </Badge>
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
                 </table>
                 <div className="mt-4">
                   <Pagination page={bookingsPage} totalPages={bookingsTotalPages} totalItems={bookings.length} onPageChange={setBookingsPage} pageSize={LIMIT} />

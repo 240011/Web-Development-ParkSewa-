@@ -38,6 +38,9 @@ export const ENDPOINTS = {
     send: "/api/v1/admin/notifications",
     detail: (id: string) => `/api/v1/admin/notifications/${id}`,
   },
+  chat: {
+    send: "/api/v1/chat",
+  },
   users: {
     adminList: "/api/v1/admin/users",
   },

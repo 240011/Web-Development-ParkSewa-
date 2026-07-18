@@ -7,6 +7,7 @@ import { ParkingSpotRepository } from "../repositories/parking-spot.repository";
 import { UserRepository } from "../repositories/user.repository";
 import { ParkingSpot } from "../models/parking-spot.model";
 import { NotificationService } from "../services/notification.services";
+import { DEFAULT_VEHICLE_PRICES } from "../constants/constant";
 
 const bookingRepository = new BookingRepository();
 const parkingSpotRepository = new ParkingSpotRepository();
@@ -29,6 +30,7 @@ async function getUser(request: NextRequest) {
 interface CreateBookingBody {
   spotId: string;
   vehicleNumber: string;
+  vehicleType?: string;
   startTime: string;
   endTime?: string;
   totalAmount: number;
@@ -51,16 +53,28 @@ export async function getBookingsRoute(request: NextRequest) {
     const spots = await parkingSpotRepository.list();
     const spotMap = new Map(spots.map((s) => [String(s._id), s]));
 
-    const formattedBookings = bookings.map((booking) => ({
-      id: String(booking._id),
-      spot: { name: spotMap.get(String(booking.spot))?.name ?? "Unknown spot" },
-      vehicleNumber: booking.vehicleNumber,
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-      totalAmount: booking.totalAmount,
-      status: booking.status,
-      promoCode: booking.promoCode,
-    }));
+    const formattedBookings = bookings.map((booking) => {
+      const spot = spotMap.get(String(booking.spot));
+      return {
+        id: String(booking._id),
+        spot: {
+          name: spot?.name ?? "Unknown spot",
+          images: spot?.images ?? [],
+          pricePerHour: spot?.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car,
+          bikePrice: spot?.bikePrice ?? DEFAULT_VEHICLE_PRICES.bike,
+          carPrice: spot?.carPrice ?? DEFAULT_VEHICLE_PRICES.car,
+          truckPrice: spot?.truckPrice ?? DEFAULT_VEHICLE_PRICES.truck,
+          evPrice: spot?.evPrice ?? DEFAULT_VEHICLE_PRICES.ev,
+        },
+        vehicleNumber: booking.vehicleNumber,
+        vehicleType: booking.vehicleType,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        totalAmount: booking.totalAmount,
+        status: booking.status,
+        promoCode: booking.promoCode,
+      };
+    });
 
     return NextResponse.json(
       ApiResponseHelper.success(formattedBookings, "Bookings retrieved successfully", 200),
@@ -94,17 +108,29 @@ export async function adminGetBookingsRoute(request: NextRequest) {
     const spotMap = new Map(spots.map((s) => [String(s._id), s]));
     const userMap = new Map(users.map((u) => [String(u._id), u]));
 
-const formattedBookings = bookings.map((booking) => ({
-      id: String(booking._id),
-      user: { name: userMap.get(String(booking.user))?.full_name ?? "Unknown user" },
-      spot: { name: spotMap.get(String(booking.spot))?.name ?? "Unknown spot" },
-      vehicleNumber: booking.vehicleNumber,
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-      totalAmount: booking.totalAmount,
-      status: booking.status,
-      promoCode: booking.promoCode,
-    }));
+  const formattedBookings = bookings.map((booking) => {
+      const spot = spotMap.get(String(booking.spot));
+      return {
+        id: String(booking._id),
+        user: { name: userMap.get(String(booking.user))?.full_name ?? "Unknown user" },
+        spot: {
+          name: spot?.name ?? "Unknown spot",
+          images: spot?.images ?? [],
+          pricePerHour: spot?.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car,
+          bikePrice: spot?.bikePrice ?? DEFAULT_VEHICLE_PRICES.bike,
+          carPrice: spot?.carPrice ?? DEFAULT_VEHICLE_PRICES.car,
+          truckPrice: spot?.truckPrice ?? DEFAULT_VEHICLE_PRICES.truck,
+          evPrice: spot?.evPrice ?? DEFAULT_VEHICLE_PRICES.ev,
+        },
+        vehicleNumber: booking.vehicleNumber,
+        vehicleType: booking.vehicleType,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        totalAmount: booking.totalAmount,
+        status: booking.status,
+        promoCode: booking.promoCode,
+      };
+    });
 
     return NextResponse.json(
       ApiResponseHelper.success(formattedBookings, "Bookings retrieved successfully", 200),
@@ -162,6 +188,7 @@ export async function createBookingRoute(request: NextRequest) {
       userId: user.userId,
       spotId: body.spotId,
       vehicleNumber: body.vehicleNumber,
+      vehicleType: body.vehicleType,
       startTime,
       endTime,
       totalAmount: body.totalAmount,
@@ -180,8 +207,17 @@ export async function createBookingRoute(request: NextRequest) {
     const formattedBooking = {
       id: String(booking._id),
       user: { name: user.userId },
-      spot: { name: spot.name },
+      spot: {
+        name: spot.name,
+        images: spot.images ?? [],
+        pricePerHour: spot.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car,
+        bikePrice: spot.bikePrice ?? DEFAULT_VEHICLE_PRICES.bike,
+        carPrice: spot.carPrice ?? DEFAULT_VEHICLE_PRICES.car,
+        truckPrice: spot.truckPrice ?? DEFAULT_VEHICLE_PRICES.truck,
+        evPrice: spot.evPrice ?? DEFAULT_VEHICLE_PRICES.ev,
+      },
       vehicleNumber: booking.vehicleNumber,
+      vehicleType: booking.vehicleType,
       startTime: booking.startTime,
       endTime: booking.endTime,
       totalAmount: booking.totalAmount,
@@ -242,8 +278,17 @@ export async function getBookingByIdRoute(request: NextRequest) {
 
     const formattedBooking = {
       id: String(booking._id),
-      spot: spot ? { name: spot.name } : { name: "Unknown spot" },
+      spot: spot ? {
+        name: spot.name,
+        images: spot.images ?? [],
+        pricePerHour: spot.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car,
+        bikePrice: spot.bikePrice ?? DEFAULT_VEHICLE_PRICES.bike,
+        carPrice: spot.carPrice ?? DEFAULT_VEHICLE_PRICES.car,
+        truckPrice: spot.truckPrice ?? DEFAULT_VEHICLE_PRICES.truck,
+        evPrice: spot.evPrice ?? DEFAULT_VEHICLE_PRICES.ev,
+      } : { name: "Unknown spot", images: [] },
       vehicleNumber: booking.vehicleNumber,
+      vehicleType: booking.vehicleType,
       startTime: booking.startTime,
       endTime: booking.endTime,
       totalAmount: booking.totalAmount,

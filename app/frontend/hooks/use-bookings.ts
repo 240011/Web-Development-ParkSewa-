@@ -6,8 +6,14 @@ export interface Booking {
   id: string;
   spot?: {
     name: string;
+    images?: string[];
+    pricePerHour?: number;
+    bikePrice?: number;
+    carPrice?: number;
+    truckPrice?: number;
   };
   vehicleNumber: string;
+  vehicleType?: string;
   startTime: string;
   endTime?: string;
   totalAmount: number;

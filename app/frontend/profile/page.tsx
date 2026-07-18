@@ -21,12 +21,12 @@ type ProfileForm = {
   vehicleType: VehicleType;
 };
 
-const stats = [
-  { label: "Member Since", value: "Jan 2024", icon: Calendar, className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  { label: "Total Bookings", value: totalBookings, icon: MapPin, className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-  { label: "Reward Points", value: "1,250", icon: Star, className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
-  { label: "Membership Tier", value: "Premium Member", icon: Trophy, className: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
-];
+function formatMemberSince(createdAt?: string): string {
+  if (!createdAt) return "—";
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
 
 export default function ProfilePage() {
   const { user, isLoading } = useAuth();
@@ -54,6 +54,14 @@ export default function ProfilePage() {
   });
 
   const totalBookings = Array.isArray(bookings) ? bookings.length : 0;
+  const memberSince = formatMemberSince(user?.createdAt);
+
+  const stats = [
+    { label: "Member Since", value: memberSince, icon: Calendar, className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+    { label: "Total Bookings", value: totalBookings, icon: MapPin, className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+    { label: "Reward Points", value: "1,250", icon: Star, className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+    { label: "Membership Tier", value: "Premium Member", icon: Trophy, className: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
+  ];
 
   const profileForm: ProfileForm = {
     fullName: draftProfile.fullName ?? user?.name ?? "",
@@ -76,7 +84,7 @@ export default function ProfilePage() {
     profileImageUrl,
     licensePlate: user?.vehicleNumber ?? "Not provided",
     vehicleType: user?.vehicleType ?? "Not provided",
-    memberSince: "Jan 2024",
+    memberSince,
     bookings: totalBookings,
     rewardPoints: 1250,
     membershipTier: "Premium Member",

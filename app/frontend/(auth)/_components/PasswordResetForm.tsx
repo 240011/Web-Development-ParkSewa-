@@ -1,42 +1,48 @@
 "use client";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { handleResetPassword } from "@/lib/actions/auth-actions";
 import { Lock, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { ResetPasswordSchema, ResetPasswordDTO } from "./schema";
 
 export default function ResetPasswordForm({
   token,
 }: {
   token: string;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ title: string; desc: string; type: string } | null>(null);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ResetPasswordDTO>({
-    resolver: zodResolver(ResetPasswordSchema),
-    defaultValues: {
-      password: "",
-      confirmPassword: "",
-    },
-  });
 
   const showToast = (title: string, desc: string, type = "default") => {
     setToast({ title, desc, type });
   };
 
-  const onSubmit = async (data: ResetPasswordDTO) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setLoading(true);
     try {
-      const response = await handleResetPassword(token, data.password);
+      const formData = new FormData(e.currentTarget);
+      const password = formData.get("password") as string;
+      const confirmPassword = formData.get("confirmPassword") as string;
+
+      if (!password || password.length < 6) {
+        showToast("Validation failed", "Password must be at least 6 characters", "destructive");
+        setLoading(false);
+        return;
+      }
+      if (password !== confirmPassword) {
+        showToast("Validation failed", "Passwords do not match", "destructive");
+        setLoading(false);
+        return;
+      }
+
+      const response = await handleResetPassword(token, password);
       if (response.success) {
         showToast("Password reset", "Your password has been updated successfully.", "default");
+        setTimeout(() => {
+          router.push("/frontend/login");
+        }, 1500);
       } else {
         showToast("Reset failed", response.message || "Something went wrong.", "destructive");
       }
@@ -69,30 +75,24 @@ export default function ResetPasswordForm({
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+          <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-800 mb-1">New Password</label>
               <input
                 type="password"
+                name="password"
                 placeholder="••••••••"
-                {...register("password")}
                 className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-base outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 bg-white/50 backdrop-blur-sm"
               />
-              {errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
-              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-800 mb-1">Confirm New Password</label>
               <input
                 type="password"
+                name="confirmPassword"
                 placeholder="••••••••"
-                {...register("confirmPassword")}
                 className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-base outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 bg-white/50 backdrop-blur-sm"
               />
-              {errors.confirmPassword && (
-                <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>
-              )}
             </div>
             <button
               type="submit"

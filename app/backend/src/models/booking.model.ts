@@ -6,6 +6,7 @@ export interface IBooking extends Document {
   user: mongoose.Types.ObjectId;
   spot: mongoose.Types.ObjectId;
   vehicleNumber: string;
+  vehicleType?: string;
   startTime: Date;
   endTime?: Date;
   totalAmount: number;
@@ -20,6 +21,7 @@ const BookingSchema = new Schema<IBooking>(
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     spot: { type: Schema.Types.ObjectId, ref: "ParkingSpot", required: true },
     vehicleNumber: { type: String, required: true, trim: true },
+    vehicleType: { type: String, enum: ["Bike", "Car", "Truck"] },
     startTime: { type: Date, required: true },
     endTime: { type: Date },
     totalAmount: { type: Number, required: true, min: 0 },

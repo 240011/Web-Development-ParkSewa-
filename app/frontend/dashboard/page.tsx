@@ -6,7 +6,7 @@ import { useListBookings, Booking } from "@/hooks/use-bookings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { Car, Clock, MapPin, ArrowRight } from "lucide-react";
+import { Car, MapPin, ArrowRight, ImageOff } from "lucide-react";
 import Sidebar from "../components/app-sidebar";
 
 const mockBookings: Booking[] = [
@@ -21,7 +21,7 @@ export default function Dashboard() {
 
   const displayBookings = Array.isArray(bookings) ? bookings : mockBookings;
   const activeBookings = displayBookings?.filter(b => b.status === "active" || b.status === "pending") || [];
-  const recentBookings = displayBookings?.slice(0, 5) || [];
+  const recentBookings = displayBookings?.slice(0, 3) || [];
 
   return (
     <div className="flex min-h-screen">
@@ -57,33 +57,45 @@ export default function Dashboard() {
                 </Link>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {recentBookings.map((booking) => (
-                      <div key={booking.id} className="flex items-center justify-between p-4 rounded-lg border bg-card/50 hover:bg-accent/5 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 bg-primary/10 text-primary rounded-full flex items-center justify-center">
-                            <Car className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <div className="font-semibold">{booking.spot?.name || "Parking Spot"}</div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {formatDate(booking.startTime)}
+                    <div key={booking.id} className="flex items-center gap-3 p-3 rounded-lg border-l-4 transition-colors hover:bg-accent/5">
+                      <Link href="/frontend/bookings" className="block flex-shrink-0">
+                        <div className="h-10 w-10 rounded-md overflow-hidden bg-muted">
+                          {booking.spot?.images?.[0] ? (
+                            <img src={booking.spot.images[0]} alt={booking.spot?.name || "Parking spot"} className="h-full w-full object-cover" onError={(e) => { const target = e.target as HTMLImageElement; target.onerror = null; target.src = '/default-spot-image.png'; }} />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                              <ImageOff className="h-4 w-4" />
                             </div>
-                          </div>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <div className="font-medium">{formatCurrency(booking.totalAmount)}</div>
-                          <div className={`text-xs capitalize px-2 py-0.5 rounded-full inline-block mt-1 
-                            ${booking.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 
-                              booking.status === 'active' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 
-                              booking.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 
-                              'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-                            {booking.status}
-                          </div>
+                      </Link>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{booking.spot?.name || "Parking Spot"}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDate(booking.startTime)}
                         </div>
                       </div>
-                    ))}
+                      <div className="text-right flex-shrink-0">
+                        <div className="font-medium text-sm">{formatCurrency(booking.totalAmount)}</div>
+                        <div className={`text-[10px] capitalize font-medium ${
+                          booking.status === 'completed' ? 'text-green-600' : 
+                          booking.status === 'active' ? 'text-blue-600' : 
+                          booking.status === 'cancelled' ? 'text-red-600' : 
+                          'text-yellow-600'
+                        }`}>
+                          {booking.status}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {recentBookings.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Car className="h-8 w-8 mx-auto mb-2 opacity-60" />
+                      <p className="text-sm">No recent bookings</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

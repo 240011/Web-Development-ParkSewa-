@@ -46,6 +46,10 @@ export class NotificationRepository {
     return Notification.findByIdAndUpdate(id, { isRead: true }, { returnDocument: "after" });
   }
 
+  async markAsUnread(id: string) {
+    return Notification.findByIdAndUpdate(id, { isRead: false }, { returnDocument: "after" });
+  }
+
   async markAllAsRead(userId: string) {
     return Notification.updateMany({ user: userId, isRead: false }, { isRead: true });
   }

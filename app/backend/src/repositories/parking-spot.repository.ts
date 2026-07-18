@@ -1,4 +1,5 @@
 import { ParkingSpot, IParkingSpot, SpotStatus, VehicleType } from "../models/parking-spot.model";
+import { DEFAULT_VEHICLE_PRICES } from "../constants/constant";
 
 const parkingSpotModel = ParkingSpot as unknown as {
   find: (q: Record<string, unknown>) => { sort: (s: Record<string, 1 | -1>) => { exec: () => Promise<IParkingSpot[]> } };
@@ -16,16 +17,31 @@ export type ParkingSpotInput = {
   longitude?: number;
   totalSlots: number;
   pricePerHour: number;
-  vehicleTypes: VehicleType[];
+  bikePrice?: number;
+  carPrice?: number;
+  truckPrice?: number;
+  evPrice?: number;
+  vehicleTypes: string[];
   status?: SpotStatus;
   images?: string[];
 };
 
 export type ParkingSpotUpdateInput = Partial<ParkingSpotInput>;
 
+export type ParkingSpotListFilters = {
+  status?: SpotStatus;
+  vehicleType?: string;
+};
+
 export class ParkingSpotRepository {
-  async list(status?: SpotStatus): Promise<IParkingSpot[]> {
-    const query = status ? { status } : {};
+  async list(filters?: ParkingSpotListFilters): Promise<IParkingSpot[]> {
+    const query: Record<string, unknown> = {};
+    if (filters?.status) {
+      query.status = filters.status;
+    }
+    if (filters?.vehicleType) {
+      query.vehicleTypes = filters.vehicleType;
+    }
     return parkingSpotModel.find(query).sort({ createdAt: -1 }).exec();
   }
 
@@ -41,6 +57,10 @@ export class ParkingSpotRepository {
       availableSlots: data.totalSlots,
       latitude: data.latitude,
       longitude: data.longitude,
+      bikePrice: data.bikePrice ?? DEFAULT_VEHICLE_PRICES.bike,
+      carPrice: data.carPrice ?? DEFAULT_VEHICLE_PRICES.car,
+      truckPrice: data.truckPrice ?? DEFAULT_VEHICLE_PRICES.truck,
+      evPrice: data.evPrice ?? DEFAULT_VEHICLE_PRICES.ev,
     });
   }
 
@@ -61,6 +81,10 @@ export class ParkingSpotRepository {
     if (data.longitude !== undefined) updateData.longitude = data.longitude;
     if (data.totalSlots !== undefined) updateData.totalSlots = nextTotalSlots;
     if (data.pricePerHour !== undefined) updateData.pricePerHour = data.pricePerHour;
+    if (data.bikePrice !== undefined) updateData.bikePrice = data.bikePrice;
+    if (data.carPrice !== undefined) updateData.carPrice = data.carPrice;
+    if (data.truckPrice !== undefined) updateData.truckPrice = data.truckPrice;
+    if (data.evPrice !== undefined) updateData.evPrice = data.evPrice;
     if (data.vehicleTypes !== undefined) updateData.vehicleTypes = data.vehicleTypes;
     if (data.status !== undefined) updateData.status = data.status;
     if (data.images !== undefined) updateData.images = data.images;

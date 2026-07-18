@@ -13,6 +13,7 @@ export type BookingInput = {
   userId: string;
   spotId: string;
   vehicleNumber: string;
+  vehicleType?: string;
   startTime: Date;
   endTime?: Date;
   totalAmount: number;

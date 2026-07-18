@@ -2,23 +2,23 @@
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/format";
-import { Loader2, CreditCard, CheckCircle, ArrowLeft } from "lucide-react";
+import { Loader2, CreditCard, ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 type PaymentMethod = "card" | "esewa" | "khalti";
 
 function PaymentForm({ bookingId }: { bookingId: string }) {
+  const router = useRouter();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCVC, setCardCVC] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [paid, setPaid] = useState(false);
 
   const { data: booking, isLoading } = useQuery({
     queryKey: ["booking", bookingId],
@@ -37,7 +37,7 @@ function PaymentForm({ bookingId }: { bookingId: string }) {
     setProcessing(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      setPaid(true);
+      router.push(`/frontend/bookings/confirmation?bookingId=${bookingId}`);
     } finally {
       setProcessing(false);
     }
@@ -62,29 +62,6 @@ function PaymentForm({ bookingId }: { bookingId: string }) {
           <CardContent>
             <Link href="/frontend/spots">
               <Button className="w-full">Find Another Spot</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (paid) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-green-50">
-        <Card className="max-w-md text-center">
-          <CardHeader>
-            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <CardTitle>Payment Successful!</CardTitle>
-            <CardDescription>Your booking has been confirmed.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold mb-4">{formatCurrency(amount)}</p>
-            {booking?.promoCode && (
-              <p className="text-sm text-green-700">Promo {booking.promoCode} applied</p>
-            )}
-            <Link href="/frontend/bookings">
-              <Button>View My Bookings</Button>
             </Link>
           </CardContent>
         </Card>

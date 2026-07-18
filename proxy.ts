@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const dashboardPrefixes = ["/frontend/dashboard", "/frontend/spots", "/frontend/bookings"];
-const publicPrefixes = ["/frontend/login", "/frontend/register"];
+const publicPrefixes = ["/frontend/login", "/frontend/register", "/frontend/forget_password", "/frontend/reset_password"];
 
 export default async function proxy(request: NextRequest) {
     const token = request.cookies.get("token")?.value;
