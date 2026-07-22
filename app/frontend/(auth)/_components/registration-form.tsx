@@ -65,7 +65,7 @@ export default function RegistrationForm() {
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-blue-500 flex items-center justify-center mb-3">
               <CarFront className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1.5 bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2.5 bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">
               Create an account
             </h1>
             <p className="text-gray-600 text-sm max-w-xs">

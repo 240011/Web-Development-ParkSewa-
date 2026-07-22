@@ -14,6 +14,23 @@ const parkingSpotRepository = new ParkingSpotRepository();
 const userRepository = new UserRepository();
 const notificationService = new NotificationService();
 
+function resolveVehicleType(
+  booking: { vehicleType?: string; user: string },
+  spot?: { vehicleTypes?: string[] },
+  userMap?: Map<string, { vehicle_type?: string }>
+): string {
+  if (booking.vehicleType) return booking.vehicleType;
+
+  const dbUser = userMap?.get(String(booking.user));
+  if (dbUser?.vehicle_type) return dbUser.vehicle_type;
+
+  if (spot?.vehicleTypes && spot.vehicleTypes.length > 0) {
+    return spot.vehicleTypes[0];
+  }
+
+  return "Car";
+}
+
 async function getUser(request: NextRequest) {
   const token = getTokenFromRequest(request);
   if (!token) return null;
@@ -51,6 +68,7 @@ export async function getBookingsRoute(request: NextRequest) {
   try {
     const bookings = await bookingRepository.listByUserId(user.userId);
     const spots = await parkingSpotRepository.list();
+    const dbUser = await userRepository.findById(user.userId);
     const spotMap = new Map(spots.map((s) => [String(s._id), s]));
 
     const formattedBookings = bookings.map((booking) => {
@@ -67,7 +85,7 @@ export async function getBookingsRoute(request: NextRequest) {
           evPrice: spot?.evPrice ?? DEFAULT_VEHICLE_PRICES.ev,
         },
         vehicleNumber: booking.vehicleNumber,
-        vehicleType: booking.vehicleType,
+        vehicleType: resolveVehicleType({ ...booking, user: String(booking.user) }, spot, dbUser ? new Map([[String(dbUser._id), dbUser]]) : undefined),
         startTime: booking.startTime,
         endTime: booking.endTime,
         totalAmount: booking.totalAmount,
@@ -123,7 +141,7 @@ export async function adminGetBookingsRoute(request: NextRequest) {
           evPrice: spot?.evPrice ?? DEFAULT_VEHICLE_PRICES.ev,
         },
         vehicleNumber: booking.vehicleNumber,
-        vehicleType: booking.vehicleType,
+        vehicleType: resolveVehicleType({ ...booking, user: String(booking.user) }, spot, userMap),
         startTime: booking.startTime,
         endTime: booking.endTime,
         totalAmount: booking.totalAmount,
@@ -184,11 +202,17 @@ export async function createBookingRoute(request: NextRequest) {
     const startTime = new Date(body.startTime);
     const endTime = body.endTime ? new Date(body.endTime) : undefined;
 
+    let vehicleType = body.vehicleType;
+    if (!vehicleType) {
+      const dbUser = await userRepository.findById(user.userId);
+      vehicleType = dbUser?.vehicle_type ?? spot.vehicleTypes?.[0] ?? "Car";
+    }
+
     const booking = await bookingRepository.create({
       userId: user.userId,
       spotId: body.spotId,
       vehicleNumber: body.vehicleNumber,
-      vehicleType: body.vehicleType,
+      vehicleType,
       startTime,
       endTime,
       totalAmount: body.totalAmount,

@@ -798,10 +798,10 @@ await queryClient.invalidateQueries({ queryKey: ["admin-parking-spots"] });
                                <span className="font-medium text-green-600">{spot.availableSlots}</span>
                                <span className="text-muted-foreground">/{spot.totalSlots}</span>
                              </td>
-                             <td className="p-3 text-center">{formatCurrency(spot.bikePrice ?? spot.pricePerHour)}</td>
-                             <td className="p-3 text-center">{formatCurrency(spot.carPrice ?? spot.pricePerHour)}</td>
-                              <td className="p-3 text-center">{formatCurrency(spot.truckPrice ?? spot.pricePerHour)}</td>
-                              <td className="p-3 text-center">{formatCurrency(spot.evPrice ?? spot.pricePerHour)}</td>
+                             <td className="p-3 text-center">{formatCurrency((spot as any).bikePrice ?? spot.pricePerHour)}</td>
+                             <td className="p-3 text-center">{formatCurrency((spot as any).carPrice ?? spot.pricePerHour)}</td>
+                              <td className="p-3 text-center">{formatCurrency((spot as any).truckPrice ?? spot.pricePerHour)}</td>
+                              <td className="p-3 text-center">{formatCurrency((spot as any).evPrice ?? spot.pricePerHour)}</td>
                               <td className="p-3 text-center">
                             <Badge variant={spot.status === "active" ? "default" : "secondary"}>
                              {spot.status}

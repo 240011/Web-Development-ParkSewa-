@@ -73,9 +73,9 @@ export default function BookingsPage() {
         ? booking.spot?.bikePrice ?? DEFAULT_VEHICLE_PRICES.bike
         : booking.vehicleType === "Truck"
           ? booking.spot?.truckPrice ?? DEFAULT_VEHICLE_PRICES.truck
-          : booking.vehicleType === "EV" || booking.vehicleType === "Electric"
-            ? booking.spot?.evPrice ?? DEFAULT_VEHICLE_PRICES.ev
-            : booking.spot?.carPrice ?? booking.spot?.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car;
+            : booking.vehicleType === "EV" || booking.vehicleType === "Electric"
+              ? booking.spot?.carPrice ?? booking.spot?.pricePerHour ?? DEFAULT_VEHICLE_PRICES.ev
+              : booking.spot?.carPrice ?? booking.spot?.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car;
       return {
         title: `Parking Session #${booking.id.toString().slice(-6)}`,
         location: booking.spot?.name ?? "Unknown parking spot",
@@ -271,7 +271,7 @@ export default function BookingsPage() {
                           Vehicle
                         </div>
                         <p className="font-semibold capitalize">{booking.vehicleType ?? "N/A"}</p>
-                        {booking.vehicleRate && (
+                        {booking.vehicleType && (
                           <p className="text-xs text-muted-foreground">{booking.vehicleRate}</p>
                         )}
                       </div>

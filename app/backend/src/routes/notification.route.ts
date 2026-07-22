@@ -87,8 +87,8 @@ export async function markNotificationReadRoute(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { notificationId } = body || {};
+    const body = (await request.json()) as { notificationId?: string } | undefined;
+    const { notificationId } = body ?? {};
 
     if (notificationId) {
       await notificationRepository.markAsRead(notificationId);

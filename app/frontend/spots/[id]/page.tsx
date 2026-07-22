@@ -71,20 +71,21 @@ export default function SpotDetailPage() {
     enabled: !!spotId,
   });
 
-  useQuery({
+  const { data: currentUserVehicleType } = useQuery<string | null>({
     queryKey: ["current-user"],
-    queryFn: async () => {
+    queryFn: async (): Promise<string | null> => {
       const res = await fetch("/api/v1/auth/current-user", { credentials: "include" });
       if (!res.ok) return null;
       const json = await res.json() as { data?: { vehicle_type?: string } };
       return json.data?.vehicle_type ?? null;
     },
-    onSuccess: (vehicleType) => {
-      if (vehicleType) {
-        setUserVehicleType(vehicleType.toLowerCase());
-      }
-    },
   });
+
+  useEffect(() => {
+    if (currentUserVehicleType) {
+      setUserVehicleType(currentUserVehicleType.toLowerCase());
+    }
+  }, [currentUserVehicleType]);
 
   const normalizedTypes = useMemo(() => (spot?.vehicleTypes || []).map((t) => t.toLowerCase()), [spot?.vehicleTypes]);
 
@@ -119,7 +120,7 @@ export default function SpotDetailPage() {
   };
 
   const getVehiclePrice = () => {
-    if (!spot) return spot?.pricePerHour ?? DEFAULT_VEHICLE_PRICES.car;
+    if (!spot) return DEFAULT_VEHICLE_PRICES.car;
     const type = effectiveVehicleType || "car";
     if (type === "bike") return spot.bikePrice ?? DEFAULT_VEHICLE_PRICES.bike;
     if (type === "truck") return spot.truckPrice ?? DEFAULT_VEHICLE_PRICES.truck;
@@ -210,10 +211,10 @@ export default function SpotDetailPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({
-            spotId: spot.id,
-            vehicleNumber,
-            vehicleType: effectiveVehicleType ? effectiveVehicleType.charAt(0).toUpperCase() + effectiveVehicleType.slice(1) : undefined,
+            body: JSON.stringify({
+              spotId: spot.id,
+              vehicleNumber,
+              vehicleType: (effectiveVehicleType ? effectiveVehicleType.charAt(0).toUpperCase() + effectiveVehicleType.slice(1) : "Car"),
             startTime,
             endTime,
             totalAmount: finalPayableAmount,

@@ -180,7 +180,7 @@ export async function adminCreatePromoRoute(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const body = await request.json() as any;
     const validatedData = createPromoSchema.parse(body);
 
     const existing = await promoRepository.findByCode(validatedData.code);
@@ -249,7 +249,7 @@ export async function adminUpdatePromoRoute(request: NextRequest, id: string) {
       return NextResponse.json(ApiResponseHelper.error("Promo not found", 404), { status: 404 });
     }
 
-    const body = await request.json();
+    const body = await request.json() as any;
     const updateData: Record<string, unknown> = {};
 
     if (body.code !== undefined) {

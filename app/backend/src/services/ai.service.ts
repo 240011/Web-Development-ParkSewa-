@@ -101,8 +101,12 @@ export async function generateChatReply(
 
     if (!response.ok) {
       try {
-        const err = await response.json();
-        console.error("Gemini API error:", response.status, err?.error?.message ?? err);
+        const errBody: any = await response.json();
+        console.error(
+          "Gemini API error:",
+          response.status,
+          errBody?.error?.message ?? errBody
+        );
       } catch {
         console.error("Gemini API error:", response.status, response.statusText);
       }
