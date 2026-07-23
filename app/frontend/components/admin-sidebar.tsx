@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -13,26 +13,22 @@ import {
   PanelLeftOpen,
   Settings,
   Tag,
-  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/lib/actions/auth-actions";
-import { useAuth } from "@/hooks/use-auth";
 
 const menuItems = [
   { href: "/frontend/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/frontend/admin/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/frontend/admin/promos", label: "Promos", icon: Tag },
   { href: "/frontend/admin/notifications", label: "Notifications", icon: Bell },
-  { href: "/frontend/admin/users", label: "Users", icon: Users },
   { href: "/frontend/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -154,17 +150,6 @@ export default function AdminSidebar() {
         </div>
 
         <div className="border-t p-4">
-          <div className="mb-3 rounded-lg border bg-background p-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Users className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{user?.name || "Admin User"}</p>
-                <p className="truncate text-xs text-muted-foreground">{user?.email || "admin"}</p>
-              </div>
-            </div>
-          </div>
           <Button
             variant="ghost"
             disabled={loggingOut}
