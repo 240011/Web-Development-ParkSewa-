@@ -60,6 +60,7 @@ export default function SpotDetailPage() {
   const [promoCode, setPromoCode] = useState("");
   const [promoResult, setPromoResult] = useState<{ valid: boolean; discount?: number; finalAmount?: number; error?: string } | null>(null);
   const [validated, setValidated] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [validatingPromo, setValidatingPromo] = useState(false);
@@ -297,16 +298,12 @@ export default function SpotDetailPage() {
           <div className="lg:col-span-2 space-y-4">
             <Card className="overflow-hidden">
               <div className="h-56 bg-muted relative overflow-hidden flex items-center justify-center">
-                {spot.images && spot.images.length > 0 ? (
+                {spot.images && spot.images.length > 0 && !imgError ? (
                   <img 
                     src={spot.images[0]} 
                     alt={spot.name} 
                     className="absolute inset-0 w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.onerror = null;
-                      target.src = '/default-spot-image.png';
-                    }}
+                    onError={() => setImgError(true)}
                   />
                 ) : (
                   <>
@@ -317,10 +314,15 @@ export default function SpotDetailPage() {
                 <Badge variant={spot.status === "active" ? "default" : "secondary"} className="absolute top-4 right-4 font-medium">
                   {spot.status}
                 </Badge>
+                {spot.images && spot.images.length > 1 && (
+                  <Badge variant="outline" className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm">
+                    +{spot.images.length - 1} more
+                  </Badge>
+                )}
               </div>
               <CardContent className="p-6">
                 <h2 className="text-xl font-bold mb-2">{spot.name}</h2>
-<div className="flex items-center gap-2 text-muted-foreground mb-4">
+                <div className="flex items-center gap-2 text-muted-foreground mb-4">
                   <MapPin className="h-4 w-4" />
                   <span>{spot.address}</span>
                   {distance !== undefined && (
@@ -341,7 +343,7 @@ export default function SpotDetailPage() {
                     <LocateFixed className="h-3 w-3" /> Show distance from my location
                   </button>
                 )}
-                <div className="grid grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
                   <div className="bg-muted/50 p-3 rounded-md text-center">
                     <div className="text-xs text-muted-foreground mb-1">Available</div>
                     <div className="font-semibold text-primary">{spot.availableSlots} / {spot.totalSlots}</div>
@@ -400,9 +402,9 @@ export default function SpotDetailPage() {
                                 ? "bg-primary text-primary-foreground border-primary"
                                 : "bg-background hover:bg-accent border-input"
                             }`}
-                          >
-                             {vehicleTypeLabel(originalType)}
-                            {price !== undefined && <span className="opacity-75">{formatCurrency(price)}/hr</span>}
+                           >
+                            {vehicleTypeLabel(originalType)}
+                           {price !== undefined && <span className="opacity-75">{formatCurrency(price)}/hr</span>}
                           </button>
                         );
                       })}

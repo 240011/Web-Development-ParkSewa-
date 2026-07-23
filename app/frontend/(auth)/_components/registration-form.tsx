@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, RegisterFormData } from "./schema";
 import { registerAction } from "@/lib/actions/auth-actions";
-import { CarFront, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function RegistrationForm() {
   const router = useRouter();
@@ -62,9 +62,7 @@ export default function RegistrationForm() {
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] px-4">
         <div className="w-full max-w-md bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-5 md:p-6 border border-white/20">
           <div className="flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-blue-500 flex items-center justify-center mb-3">
-              <CarFront className="w-6 h-6 text-white" />
-            </div>
+            <img src="/uploads/AppIcon.png" alt="ParkSewa Logo" width={64} height={64} className="w-16 h-16 rounded-2xl object-cover mb-3 shadow-lg" />
             <h1 className="text-2xl font-bold text-gray-900 mb-2.5 bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">
               Create an account
             </h1>

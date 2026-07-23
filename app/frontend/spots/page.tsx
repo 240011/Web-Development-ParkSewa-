@@ -91,7 +91,7 @@ function SpotsPageInner() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <div className="flex-1 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex-1 md:pl-10 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Find Parking Spots</h1>
@@ -222,7 +222,7 @@ export default function SpotsPage() {
       fallback={
         <div className="flex min-h-screen">
           <Sidebar />
-          <div className="flex-1 p-8 text-muted-foreground">Loading…</div>
+          <div className="flex-1 md:pl-64 p-8 text-muted-foreground">Loading…</div>
         </div>
       }
     >
