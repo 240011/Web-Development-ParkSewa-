@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { Calendar, Car, Clock, CreditCard, ArrowLeft, Search } from "lucide-react";
+import { Calendar, Car, Clock, CreditCard, Search } from "lucide-react";
 import Link from "next/link";
 import AdminSidebar from "@/components/admin-sidebar";
 import { cn } from "@/lib/utils";
@@ -113,18 +113,11 @@ export default function AdminBookingsPage() {
   return (
     <div className="flex min-h-screen">
       <AdminSidebar />
-      <div className="flex-1 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 p-6">
-        <div className="flex items-center gap-4">
-          <Link href="/frontend/admin/dashboard">
-            <Button variant="ghost" size="sm" className="gap-2 -ml-4">
-              <ArrowLeft className="h-4 w-4" /> Back
-            </Button>
-          </Link>
+        <div className="flex-1 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 p-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">All Bookings</h1>
             <p className="text-muted-foreground">View and manage all user bookings.</p>
           </div>
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
