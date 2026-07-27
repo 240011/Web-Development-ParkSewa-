@@ -70,8 +70,8 @@ function PaymentForm({ bookingId }: { bookingId: string }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-md space-y-6">
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="w-full max-w-xl space-y-6">
         <Link href="/frontend/spots">
           <Button variant="ghost" size="sm" className="gap-2">
             <ArrowLeft className="h-4 w-4" />
