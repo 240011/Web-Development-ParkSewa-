@@ -1,8 +1,7 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { handleResetPassword } from "@/lib/actions/auth-actions";
-import { Lock, Loader2 } from "lucide-react";
+import { useActionState } from "react";
+import { resetPasswordAction } from "@/lib/actions/auth-actions";
+import { Lock } from "lucide-react";
 import Link from "next/link";
 
 export default function ResetPasswordForm({
@@ -10,57 +9,10 @@ export default function ResetPasswordForm({
 }: {
   token: string;
 }) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<{ title: string; desc: string; type: string } | null>(null);
-
-  const showToast = (title: string, desc: string, type = "default") => {
-    setToast({ title, desc, type });
-  };
-
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const formData = new FormData(e.currentTarget);
-      const password = formData.get("password") as string;
-      const confirmPassword = formData.get("confirmPassword") as string;
-
-      if (!password || password.length < 6) {
-        showToast("Validation failed", "Password must be at least 6 characters", "destructive");
-        setLoading(false);
-        return;
-      }
-      if (password !== confirmPassword) {
-        showToast("Validation failed", "Passwords do not match", "destructive");
-        setLoading(false);
-        return;
-      }
-
-      const response = await handleResetPassword(token, password);
-      if (response.success) {
-        showToast("Password reset", "Your password has been updated successfully.", "default");
-        setTimeout(() => {
-          router.push("/frontend/login");
-        }, 1500);
-      } else {
-        showToast("Reset failed", response.message || "Something went wrong.", "destructive");
-      }
-    } catch {
-      showToast("Reset failed", "Something went wrong.", "destructive");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [state, formAction] = useActionState(resetPasswordAction, { success: false, message: "" });
 
   return (
     <>
-      {toast && (
-        <div className={`fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${toast.type === "destructive" ? "bg-red-600 text-white" : "bg-green-600 text-white"}`}>
-          <p className="font-medium text-sm">{toast.title}</p>
-          <p className="text-xs opacity-90">{toast.desc}</p>
-        </div>
-      )}
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] px-4">
         <div className="w-full max-w-md bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-5 md:p-6 border border-white/20">
           <div className="flex flex-col items-center text-center">
@@ -75,7 +27,15 @@ export default function ResetPasswordForm({
             </p>
           </div>
 
-          <form onSubmit={onSubmit} className="mt-6 space-y-4">
+          {state.message && !state.success && (
+            <div className="fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 bg-red-600 text-white">
+              <p className="font-medium text-sm">Reset failed</p>
+              <p className="text-xs opacity-90">{state.message}</p>
+            </div>
+          )}
+
+          <form action={formAction} className="mt-6 space-y-4">
+            <input type="hidden" name="token" value={token} />
             <div>
               <label className="block text-sm font-medium text-gray-800 mb-1">New Password</label>
               <input
@@ -96,17 +56,9 @@ export default function ResetPasswordForm({
             </div>
             <button
               type="submit"
-              disabled={loading}
               className="w-full bg-gradient-to-r from-teal-600 to-blue-600 hover:bg-gradient-to-r hover:from-teal-700 hover:to-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Resetting…
-                </span>
-              ) : (
-                "Reset Password"
-              )}
+              Reset Password
             </button>
           </form>
 
