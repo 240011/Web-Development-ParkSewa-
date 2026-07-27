@@ -58,46 +58,46 @@ export default function LoginForm() {
         </div>
       )}
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] px-4">
-        <div className="w-full max-w-md bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-5 md:p-6 border border-white/20">
+        <div className="w-full max-w-xl bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-8 md:p-10 border border-white/20">
           <div className="flex flex-col items-center text-center">
-            <img src="/uploads/AppIcon.png" alt="ParkSewa Logo" width={64} height={64} className="w-16 h-16 rounded-2xl object-cover mb-3 shadow-lg" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-1.5 bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">
+            <img src="/uploads/AppIcon.png" alt="ParkSewa Logo" width={96} height={96} className="w-24 h-24 rounded-2xl object-cover mb-4 shadow-lg" />
+            <h1 className="text-4xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">
               Welcome back
             </h1>
-            <p className="text-gray-600 text-sm max-w-xs">
+            <p className="text-gray-600 text-base max-w-sm">
               Login to ParkSewa to access your parking bookings
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-1">Email</label>
+              <label className="block text-base font-medium text-gray-800 mb-1.5">Email</label>
               <input
                 type="email"
                 placeholder="john@example.com"
                 {...register("email")}
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-base outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-lg outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 bg-white/50 backdrop-blur-sm"
               />
               {errors.email && (
-                <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+                <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-1">Password</label>
+              <label className="block text-base font-medium text-gray-800 mb-1.5">Password</label>
               <input
                 type="password"
                 placeholder="••••••••"
                 {...register("password")}
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-base outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-lg outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 bg-white/50 backdrop-blur-sm"
               />
               {errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+                <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
               )}
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-teal-600 to-blue-600 hover:bg-gradient-to-r hover:from-teal-700 hover:to-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+              className="w-full bg-gradient-to-r from-teal-600 to-blue-600 hover:bg-gradient-to-r hover:from-teal-700 hover:to-blue-700 text-white text-base font-semibold py-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
