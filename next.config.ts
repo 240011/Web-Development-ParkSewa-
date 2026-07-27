@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: "/Users/nirajbam/Documents/parksewa",
   },
-  allowedDevOrigins: ["192.168.1.21"],
+  allowedDevOrigins: ["192.168.1.21", "192.168.1.68"],
 };
 
 export default nextConfig;
