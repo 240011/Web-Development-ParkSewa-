@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { registerSchema, loginSchema, changePasswordSchema } from "@/(auth)/_components/schema";
 import { ENDPOINTS } from "@/lib/endpoints";
 import { setTokenCookie, getTokenCookie, deleteTokenCookie } from "@/lib/cookies";
@@ -170,7 +171,7 @@ export const handleRequestPasswordReset = async (email: string) => {
     }
   };
 
-  export const handleResetPassword = async (token: string, newPassword: string) => {
+export const handleResetPassword = async (token: string, newPassword: string) => {
     try {
       const baseUrl = await getBaseUrl();
       const response = await fetch(`${baseUrl}/api/v1/auth/reset-password/${token}`, {
@@ -190,6 +191,25 @@ export const handleRequestPasswordReset = async (email: string) => {
       const message = error instanceof Error ? error.message : 'Reset password failed';
       return { success: false, message };
     }
+  }
+
+export const resetPasswordAction = async (prevState: { success: boolean; message: string }, formData: FormData) => {
+    const token = (formData.get('token') as string) || '';
+    const password = formData.get('password') as string;
+    const confirmPassword = formData.get('confirmPassword') as string;
+
+    if (!password || password.length < 6) {
+      return { success: false, message: 'Password must be at least 6 characters' };
+    }
+    if (password !== confirmPassword) {
+      return { success: false, message: 'Passwords do not match' };
+    }
+
+    const result = await handleResetPassword(token, password);
+    if (result.success) {
+      redirect('/frontend/login');
+    }
+    return result;
   }
 
 export async function logoutAction() {
